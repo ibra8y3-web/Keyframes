@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B0B14"/><stop offset="1" stop-color="#1B1240"/>
+    </linearGradient>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7C4DFF"/><stop offset="1" stop-color="#00E5C3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" fill="url(#g)"/>
+  <g transform="translate(110,70) scale(2.2)">
+    <path d="M54,24 L84,54 L54,84 L24,54 Z" transform="translate(-24,-24)" fill="#7C4DFF"/>
+    <path d="M54,32 L76,54 L54,76 L32,54 Z" transform="translate(-24,-24)" fill="#B39DFF"/>
+    <path d="M46,40 L46,68 L71,54 Z" transform="translate(-24,-24)" fill="#00E5C3"/>
+  </g>
+  <text x="330" y="175" font-family="Arial, Helvetica, sans-serif" font-size="96" font-weight="700" fill="url(#a)">Keyframes</text>
+  <text x="334" y="235" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#C9C9E0">Native Android video editor · Media3 · Jetpack Compose</text>
+  <rect x="334" y="262" width="560" height="6" rx="3" fill="#2A2A44"/>
+  <rect x="334" y="262" width="340" height="6" rx="3" fill="url(#a)"/>
+  <circle cx="674" cy="265" r="11" fill="#00E5C3"/>
+</svg>
