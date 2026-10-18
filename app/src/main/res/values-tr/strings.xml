@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Medya ekle</string>
     <string name="export">Dışa aktar</string>
     <string name="trim">Kırp</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Seslendirme</string>
     <string name="stop">Durdur</string>
     <string name="new_project">Yeni proje</string>
+    <string name="tagline">Hepsi bir arada video düzenleme</string>
+    <string name="continue_editing">Düzenlemeye devam et</string>
+    <string name="tools_title">Araçlar</string>
+    <string name="edit_project">Projeyi düzenle</string>
+    <string name="no_watermark">Filigran yok</string>
+    <string name="f_midnight">Gece yarısı</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Altın</string>
+    <string name="motion">Hareket</string>
+    <string name="anim_in">Giriş</string>
+    <string name="anim_out">Çıkış</string>
+    <string name="m_kenin">Yakınlaş</string>
+    <string name="m_kenout">Uzaklaş</string>
+    <string name="m_pulse">Nabız</string>
+    <string name="m_shake">Titreme</string>
+    <string name="m_pop">Belirme</string>
+    <string name="pitch">Ses perdesi</string>
+    <string name="tilt">Eğim</string>
+    <string name="fit">Sığdır</string>
+    <string name="fill">Doldur</string>
+    <string name="opacity">Opaklık</string>
+    <string name="cat_edit">Düzenle</string>
+    <string name="cat_audio">Ses</string>
+    <string name="cat_effects">Efektler</string>
+    <string name="cat_canvas">Tuval</string>
+    <string name="flip_v">Dikey çevir</string>
+    <string name="fade">Geçiş</string>
+    <string name="kf">Anahtar kare</string>
+    <string name="extract">Sesi ayır</string>
+    <string name="srt">Altyazı içe aktar (SRT)</string>
+    <string name="drafts">Taslaklar</string>
+    <string name="speak">Metinden konuşmaya</string>
 </resources>

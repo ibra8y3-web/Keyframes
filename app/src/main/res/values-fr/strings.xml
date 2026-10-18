@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Ajouter des médias</string>
     <string name="export">Exporter</string>
     <string name="trim">Couper</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Voix off</string>
     <string name="stop">Arrêter</string>
     <string name="new_project">Nouveau projet</string>
+    <string name="tagline">Montage vidéo tout-en-un</string>
+    <string name="continue_editing">Continuer le montage</string>
+    <string name="tools_title">Outils</string>
+    <string name="edit_project">Modifier le projet</string>
+    <string name="no_watermark">Sans filigrane</string>
+    <string name="f_midnight">Minuit</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Doré</string>
+    <string name="motion">Mouvement</string>
+    <string name="anim_in">Entrée</string>
+    <string name="anim_out">Sortie</string>
+    <string name="m_kenin">Zoom avant</string>
+    <string name="m_kenout">Zoom arrière</string>
+    <string name="m_pulse">Pulsation</string>
+    <string name="m_shake">Secousse</string>
+    <string name="m_pop">Apparition</string>
+    <string name="pitch">Hauteur</string>
+    <string name="tilt">Incliner</string>
+    <string name="fit">Ajuster</string>
+    <string name="fill">Remplir</string>
+    <string name="opacity">Opacité</string>
+    <string name="cat_edit">Édition</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_effects">Effets</string>
+    <string name="cat_canvas">Toile</string>
+    <string name="flip_v">Retourner vertical</string>
+    <string name="fade">Fondu</string>
+    <string name="kf">Image clé</string>
+    <string name="extract">Extraire le son</string>
+    <string name="srt">Importer des sous-titres (SRT)</string>
+    <string name="drafts">Brouillons</string>
+    <string name="speak">Synthèse vocale</string>
 </resources>

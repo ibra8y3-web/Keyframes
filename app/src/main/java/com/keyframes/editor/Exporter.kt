@@ -5,6 +5,8 @@ package com.keyframes.editor
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.graphics.Typeface
 import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -12,6 +14,9 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.text.SpannableString
 import android.text.style.AbsoluteSizeSpan
+import android.text.style.BackgroundColorSpan
+import android.text.style.StyleSpan
+import android.text.style.TypefaceSpan
 import android.text.style.ForegroundColorSpan
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
@@ -25,6 +30,7 @@ import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.Crop
 import androidx.media3.effect.HslAdjustment
+import androidx.media3.effect.MatrixTransformation
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.OverlaySettings
 import androidx.media3.effect.Presentation
@@ -44,6 +50,9 @@ import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 private val SEPIA = floatArrayOf(
     .393f, .349f, .272f, 0f,
@@ -66,20 +75,71 @@ private fun lum(r: Float, g: Float, b: Float) = .299f * r + .587f * g + .114f * 
 private val LUT_CINE by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(r + .14f * (l - .5f) + .03f, g + .02f, b - .14f * (l - .5f) + .03f * (1f - l)) } }
 private val LUT_VIVID by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(l + (r - l) * 1.4f, l + (g - l) * 1.4f, l + (b - l) * 1.4f) } }
 private val LUT_FADE by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(.1f + .8f * (l + (r - l) * .8f), .1f + .8f * (l + (g - l) * .8f), .1f + .8f * (l + (b - l) * .8f)) } }
+private val LUT_MIDNIGHT by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(r * .72f + .02f * l, g * .84f + .03f * l, b * 1.02f + .06f) } }
+private val LUT_VINTAGE by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(.10f + .85f * (l * .8f + r * .25f), .08f + .80f * (l * .85f + g * .15f), .05f + .70f * (l * .75f + b * .1f)) } }
+private val LUT_GOLDEN by lazy { makeLut { r, g, b -> Triple(r * 1.10f + .04f, g * 1.02f + .02f, b * .85f) } }
 private val LUT_NOIR by lazy { makeLut { r, g, b -> val v = (lum(r, g, b) - .5f) * 1.45f + .5f; Triple(v, v, v) } }
+
+private val FONTS = listOf("sans-serif", "serif", "monospace", "cursive")
+
+/** Time-varying zoom / slide / shake for one clip. Coordinates are NDC (-1..1). */
+private fun motionMatrix(c: Clip, us: Long): Matrix {
+    val ms = us / 1000f
+    val len = c.lenMs.toFloat().coerceAtLeast(1f)
+    var sc = 1f; var tx = 0f; var ty = 0f
+    when (c.loop) {
+        Loop.KEN_IN -> sc *= 1f + .25f * (ms / len).coerceIn(0f, 1f)
+        Loop.KEN_OUT -> sc *= 1.25f - .25f * (ms / len).coerceIn(0f, 1f)
+        Loop.PULSE -> sc *= 1f + .06f * sin(ms / 1000f * 2f * PI.toFloat() * 1.5f)
+        Loop.SHAKE -> { tx += .02f * sin(ms / 20f); ty += .02f * cos(ms / 17f) }
+        Loop.NONE -> {}
+    }
+    if (c.keys.isNotEmpty()) {
+        val ks = c.keys
+        val k0 = ks.lastOrNull { it.tMs <= ms }
+        val k1 = ks.firstOrNull { it.tMs > ms }
+        val (z, px, py) = when {
+            k0 == null -> Triple(k1!!.zoom, k1.panX, k1.panY)
+            k1 == null -> Triple(k0.zoom, k0.panX, k0.panY)
+            else -> {
+                val f = (ms - k0.tMs) / (k1.tMs - k0.tMs).toFloat()
+                Triple(k0.zoom + (k1.zoom - k0.zoom) * f, k0.panX + (k1.panX - k0.panX) * f, k0.panY + (k1.panY - k0.panY) * f)
+            }
+        }
+        sc *= z; tx += -px * (z - 1f); ty += -py * (z - 1f)
+    }
+    val d = c.animMs.toFloat().coerceAtLeast(100f)
+    fun apply(a: Anim, p: Float) {
+        val e = p * p * (3f - 2f * p)
+        val off = (1f - e) * 2f
+        when (a) {
+            Anim.SLIDE_LEFT -> tx -= off
+            Anim.SLIDE_RIGHT -> tx += off
+            Anim.SLIDE_UP -> ty -= off
+            Anim.SLIDE_DOWN -> ty += off
+            Anim.ZOOM -> sc *= .6f + .4f * e
+            Anim.POP -> sc *= e
+            Anim.NONE -> {}
+        }
+    }
+    if (c.animIn != Anim.NONE && ms < d) apply(c.animIn, (ms / d).coerceIn(0f, 1f))
+    if (c.animOut != Anim.NONE && ms > len - d) apply(c.animOut, ((len - ms) / d).coerceIn(0f, 1f))
+    val s = sc.coerceAtLeast(0.001f)
+    return Matrix().apply { postScale(s, s); postTranslate(tx, ty) }
+}
 
 /** Per-clip visual effects. Shared by the live preview and the final export. */
 fun clipEffects(c: Clip): List<Effect> {
     val l = mutableListOf<Effect>()
-    if (c.zoom > 1f) {
+    if (c.zoom > 1f && c.keys.isEmpty()) {
         val h = 1f / c.zoom
         val cx = c.panX * (1f - h); val cy = c.panY * (1f - h)
         l += Crop(cx - h, cx + h, cy - h, cy + h)
     }
-    if (c.rot != 0 || c.mirror) {
+    if (c.rot != 0 || c.tilt != 0f || c.mirror || c.flipV) {
         l += ScaleAndRotateTransformation.Builder()
-            .setRotationDegrees(c.rot.toFloat())
-            .setScale(if (c.mirror) -1f else 1f, 1f).build()
+            .setRotationDegrees(c.rot + c.tilt)
+            .setScale(if (c.mirror) -1f else 1f, if (c.flipV) -1f else 1f).build()
     }
     when (c.fx) {
         Fx.GRAY -> l += RgbFilter.createGrayscaleFilter()
@@ -91,12 +151,18 @@ fun clipEffects(c: Clip): List<Effect> {
         Fx.VIVID -> l += LUT_VIVID
         Fx.FADE -> l += LUT_FADE
         Fx.NOIR -> l += LUT_NOIR
+        Fx.MIDNIGHT -> l += LUT_MIDNIGHT
+        Fx.VINTAGE -> l += LUT_VINTAGE
+        Fx.GOLDEN -> l += LUT_GOLDEN
         Fx.NONE -> {}
     }
     if (c.temp != 0f) l += RgbAdjustment.Builder().setRedScale(1f + .3f * c.temp).setBlueScale(1f - .3f * c.temp).build()
     if (c.bright != 0f) l += Brightness(c.bright)
     if (c.contrast != 0f) l += Contrast(c.contrast)
     if (c.sat != 0f || c.hue != 0f) l += HslAdjustment.Builder().adjustHue(c.hue * 180f).adjustSaturation(c.sat * 100f).build()
+    if (c.loop != Loop.NONE || c.animIn != Anim.NONE || c.animOut != Anim.NONE || c.keys.isNotEmpty()) {
+        l += MatrixTransformation { us -> motionMatrix(c, us) }
+    }
     if (c.fadeIn > 0 || c.fadeOut > 0) {
         val len = c.lenMs.toFloat()
         l += RgbMatrix { us, _ ->
@@ -115,26 +181,49 @@ private fun volumeProcessor(v: Float): AudioProcessor = ChannelMixingAudioProces
     for (ch in 1..2) putChannelMixingMatrix(ChannelMixingMatrix.create(ch, ch).scaleBy(v))
 }
 
+private fun animP(start: Long, end: Long, ms: Long): Float =
+    minOf(((ms - start) / 500f).coerceIn(0f, 1f), ((end - ms) / 500f).coerceIn(0f, 1f))
+
+/** anim: 0 none, 1 fade, 2 pop, 3 slide up, 4 typewriter. */
 private class TimedText(val t: TextItem) : TextOverlay() {
     override fun getText(presentationTimeUs: Long): SpannableString {
         val ms = presentationTimeUs / 1000
-        val s = SpannableString(if (ms in t.start until t.end) t.text else " ")
-        s.setSpan(ForegroundColorSpan(t.color), 0, s.length, 0)
+        val inside = ms in t.start until t.end
+        val s = SpannableString(if (inside) t.text else " ")
+        val shown = if (t.anim == 4 && inside) (t.text.length * ((ms - t.start) / 500f).coerceIn(0f, 1f)).toInt().coerceAtLeast(1) else s.length
+        s.setSpan(ForegroundColorSpan(t.color), 0, shown.coerceAtMost(s.length), 0)
+        if (shown < s.length) s.setSpan(ForegroundColorSpan(0), shown, s.length, 0)
         s.setSpan(AbsoluteSizeSpan(t.size), 0, s.length, 0)
+        if (t.bold) s.setSpan(StyleSpan(Typeface.BOLD), 0, s.length, 0)
+        if (t.bg) s.setSpan(BackgroundColorSpan(0x99000000.toInt()), 0, s.length, 0)
+        s.setSpan(TypefaceSpan(FONTS[t.font.coerceIn(0, FONTS.size - 1)]), 0, s.length, 0)
         return s
     }
 
-    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings =
-        OverlaySettings.Builder().setBackgroundFrameAnchor(0f, t.y).build()
+    override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+        val ms = presentationTimeUs / 1000
+        val p = animP(t.start, t.end, ms)
+        var alpha = if (t.anim == 1) p else 1f
+        if (ms !in t.start until t.end) alpha = 0f
+        val b = OverlaySettings.Builder()
+            .setBackgroundFrameAnchor(0f, if (t.anim == 3) t.y - (1f - p) * 0.25f else t.y)
+            .setAlphaScale(alpha)
+        if (t.anim == 2) { val sc = p.coerceAtLeast(0.01f); b.setScale(sc, sc) }
+        return b.build()
+    }
 }
 
 private class TimedSticker(val s: Sticker, val bmp: Bitmap) : BitmapOverlay() {
     override fun getBitmap(presentationTimeUs: Long): Bitmap = bmp
     override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
         val ms = presentationTimeUs / 1000
+        val p = animP(s.start, s.end, ms)
+        var alpha = if (s.anim == 1) s.alpha * p else s.alpha
+        if (ms !in s.start until s.end) alpha = 0f
+        val sc = if (s.anim == 2) s.scale * p.coerceAtLeast(0.01f) else s.scale
         return OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(s.x, s.y).setScale(s.scale, s.scale)
-            .setAlphaScale(if (ms in s.start until s.end) 1f else 0f).build()
+            .setBackgroundFrameAnchor(s.x, if (s.anim == 3) s.y - (1f - p) * 0.25f else s.y)
+            .setScale(sc, sc).setAlphaScale(alpha).build()
     }
 }
 
@@ -147,6 +236,12 @@ internal fun loadBitmap(ctx: Context, uri: Uri): Bitmap =
         }
         dec.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
     }
+
+private fun silenceFile(ctx: Context, ms: Long): File {
+    val f = File(ctx.cacheDir, "sil_$ms.wav")
+    if (!f.exists()) AudioGen.writeSilence(f, ms)
+    return f
+}
 
 object Exporter {
     fun build(ctx: Context, p: Project, height: Int, audioOnly: Boolean): Composition {
@@ -162,28 +257,30 @@ object Exporter {
                         .setStartPositionMs(c.start).setEndPositionMs(c.end).build()
                 ).build()
             val audio = mutableListOf<AudioProcessor>()
-            if (c.speed != 1f) audio += SonicAudioProcessor().apply { setSpeed(c.speed); setPitch(1f) }
+            if (c.speed != 1f || c.pitch != 1f) audio += SonicAudioProcessor().apply { setSpeed(c.speed); setPitch(c.pitch) }
             if (c.volume != 1f) audio += volumeProcessor(c.volume)
             val video: List<Effect> = if (audioOnly) emptyList() else {
                 clipEffects(c) + (if (c.speed != 1f) listOf<Effect>(SpeedChangeEffect(c.speed)) else emptyList())
             }
             EditedMediaItem.Builder(mi).setEffects(Effects(audio, video)).setRemoveVideo(audioOnly).build()
         }
-        val seqs = mutableListOf(EditedMediaItemSequence(items))
-        p.music?.let { m ->
-            val mi = EditedMediaItem.Builder(MediaItem.fromUri(m.uri))
-                .setRemoveVideo(true)
-                .setEffects(Effects(listOf(volumeProcessor(m.volume)), emptyList())).build()
-            seqs += EditedMediaItemSequence(listOf(mi), true)
-        }
-        p.voice?.let { m ->
-            val mi = EditedMediaItem.Builder(MediaItem.fromUri(m.uri)).setRemoveVideo(true)
-                .setEffects(Effects(if (m.volume != 1f) listOf(volumeProcessor(m.volume)) else emptyList(), emptyList())).build()
-            seqs += EditedMediaItemSequence(listOf(mi))
+        val seqs = mutableListOf<EditedMediaItemSequence>()
+        if (items.isNotEmpty()) seqs += EditedMediaItemSequence(items)
+        p.audio.forEach { a ->
+            val room = p.totalMs - a.startMs
+            if (room < 300) return@forEach
+            val end = minOf(a.srcEnd, a.srcStart + room)
+            val list = mutableListOf<EditedMediaItem>()
+            if (a.startMs > 0) list += EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(silenceFile(ctx, a.startMs)))).build()
+            val mi = MediaItem.Builder().setUri(a.uri)
+                .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(a.srcStart).setEndPositionMs(end).build()).build()
+            list += EditedMediaItem.Builder(mi).setRemoveVideo(true)
+                .setEffects(Effects(if (a.volume != 1f) listOf(volumeProcessor(a.volume)) else emptyList(), emptyList())).build()
+            seqs += EditedMediaItemSequence(list)
         }
         val vfx = mutableListOf<Effect>()
         if (!audioOnly) {
-            if (p.ratio > 0f) vfx += Presentation.createForAspectRatio(p.ratio, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
+            if (p.ratio > 0f) vfx += Presentation.createForAspectRatio(p.ratio, if (p.fit) Presentation.LAYOUT_SCALE_TO_FIT else Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
             vfx += Presentation.createForHeight(height)
             val overlays = mutableListOf<TextureOverlay>()
             p.stickers.forEach { st -> runCatching { loadBitmap(ctx, st.uri) }.getOrNull()?.let { overlays += TimedSticker(st, it) } }

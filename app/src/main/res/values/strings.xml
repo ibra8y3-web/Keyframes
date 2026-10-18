@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Add media</string>
     <string name="export">Export</string>
     <string name="trim">Trim</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Voiceover</string>
     <string name="stop">Stop</string>
     <string name="new_project">New project</string>
+    <string name="tagline">All-in-one video editing</string>
+    <string name="continue_editing">Continue editing</string>
+    <string name="tools_title">Tools</string>
+    <string name="edit_project">Edit Project</string>
+    <string name="no_watermark">No watermark</string>
+    <string name="f_midnight">Midnight</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Golden</string>
+    <string name="motion">Motion</string>
+    <string name="anim_in">In</string>
+    <string name="anim_out">Out</string>
+    <string name="m_kenin">Zoom in</string>
+    <string name="m_kenout">Zoom out</string>
+    <string name="m_pulse">Pulse</string>
+    <string name="m_shake">Shake</string>
+    <string name="m_pop">Pop</string>
+    <string name="pitch">Pitch</string>
+    <string name="tilt">Tilt</string>
+    <string name="fit">Fit</string>
+    <string name="fill">Fill</string>
+    <string name="opacity">Opacity</string>
+    <string name="cat_edit">Edit</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_effects">Effects</string>
+    <string name="cat_canvas">Canvas</string>
+    <string name="flip_v">Flip vertical</string>
+    <string name="fade">Fade</string>
+    <string name="kf">Keyframe</string>
+    <string name="extract">Extract audio</string>
+    <string name="srt">Import subtitles (SRT)</string>
+    <string name="drafts">Drafts</string>
+    <string name="speak">Text to speech</string>
 </resources>

@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 Surface(Modifier.fillMaxSize().systemBarsPadding(), color = MaterialTheme.colorScheme.background) {
-                    EditorScreen()
+                    AppRoot()
                 }
             }
         }

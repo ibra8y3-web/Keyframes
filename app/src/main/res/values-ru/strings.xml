@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Добавить медиа</string>
     <string name="export">Экспорт</string>
     <string name="trim">Обрезать</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Озвучка</string>
     <string name="stop">Стоп</string>
     <string name="new_project">Новый проект</string>
+    <string name="tagline">Видеомонтаж всё в одном</string>
+    <string name="continue_editing">Продолжить монтаж</string>
+    <string name="tools_title">Инструменты</string>
+    <string name="edit_project">Редактирование проекта</string>
+    <string name="no_watermark">Без водяного знака</string>
+    <string name="f_midnight">Полночь</string>
+    <string name="f_vintage">Винтаж</string>
+    <string name="f_golden">Золотой</string>
+    <string name="motion">Движение</string>
+    <string name="anim_in">Вход</string>
+    <string name="anim_out">Выход</string>
+    <string name="m_kenin">Приближение</string>
+    <string name="m_kenout">Отдаление</string>
+    <string name="m_pulse">Пульс</string>
+    <string name="m_shake">Тряска</string>
+    <string name="m_pop">Всплеск</string>
+    <string name="pitch">Высота тона</string>
+    <string name="tilt">Наклон</string>
+    <string name="fit">Вписать</string>
+    <string name="fill">Заполнить</string>
+    <string name="opacity">Прозрачность</string>
+    <string name="cat_edit">Монтаж</string>
+    <string name="cat_audio">Звук</string>
+    <string name="cat_effects">Эффекты</string>
+    <string name="cat_canvas">Холст</string>
+    <string name="flip_v">Отразить по вертикали</string>
+    <string name="fade">Затемнение</string>
+    <string name="kf">Ключевой кадр</string>
+    <string name="extract">Извлечь звук</string>
+    <string name="srt">Импорт субтитров (SRT)</string>
+    <string name="drafts">Черновики</string>
+    <string name="speak">Текст в речь</string>
 </resources>

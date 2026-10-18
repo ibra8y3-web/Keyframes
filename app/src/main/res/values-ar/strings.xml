@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">إضافة وسائط</string>
     <string name="export">تصدير</string>
     <string name="trim">قص</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">تعليق صوتي</string>
     <string name="stop">إيقاف</string>
     <string name="new_project">مشروع جديد</string>
+    <string name="tagline">تعديل فيديو متكامل</string>
+    <string name="continue_editing">متابعة التعديل</string>
+    <string name="tools_title">الأدوات</string>
+    <string name="edit_project">تعديل المشروع</string>
+    <string name="no_watermark">بدون علامة مائية</string>
+    <string name="f_midnight">منتصف الليل</string>
+    <string name="f_vintage">كلاسيكي</string>
+    <string name="f_golden">ذهبي</string>
+    <string name="motion">حركة</string>
+    <string name="anim_in">دخول</string>
+    <string name="anim_out">خروج</string>
+    <string name="m_kenin">تقريب تدريجي</string>
+    <string name="m_kenout">تبعيد تدريجي</string>
+    <string name="m_pulse">نبض</string>
+    <string name="m_shake">اهتزاز</string>
+    <string name="m_pop">ظهور مفاجئ</string>
+    <string name="pitch">طبقة الصوت</string>
+    <string name="tilt">ميل</string>
+    <string name="fit">احتواء</string>
+    <string name="fill">ملء</string>
+    <string name="opacity">الشفافية</string>
+    <string name="cat_edit">تعديل</string>
+    <string name="cat_audio">صوت</string>
+    <string name="cat_effects">مؤثرات</string>
+    <string name="cat_canvas">لوحة العرض</string>
+    <string name="flip_v">قلب عمودي</string>
+    <string name="fade">تلاشي</string>
+    <string name="kf">إطار رئيسي</string>
+    <string name="extract">استخراج الصوت</string>
+    <string name="srt">استيراد ترجمة (SRT)</string>
+    <string name="drafts">المسودات</string>
+    <string name="speak">نص إلى كلام</string>
 </resources>

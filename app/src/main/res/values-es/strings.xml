@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Añadir medios</string>
     <string name="export">Exportar</string>
     <string name="trim">Recortar</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Locución</string>
     <string name="stop">Detener</string>
     <string name="new_project">Nuevo proyecto</string>
+    <string name="tagline">Edición de vídeo todo en uno</string>
+    <string name="continue_editing">Seguir editando</string>
+    <string name="tools_title">Herramientas</string>
+    <string name="edit_project">Editar proyecto</string>
+    <string name="no_watermark">Sin marca de agua</string>
+    <string name="f_midnight">Medianoche</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Dorado</string>
+    <string name="motion">Movimiento</string>
+    <string name="anim_in">Entrada</string>
+    <string name="anim_out">Salida</string>
+    <string name="m_kenin">Acercar</string>
+    <string name="m_kenout">Alejar</string>
+    <string name="m_pulse">Pulso</string>
+    <string name="m_shake">Vibración</string>
+    <string name="m_pop">Aparición</string>
+    <string name="pitch">Tono</string>
+    <string name="tilt">Inclinar</string>
+    <string name="fit">Ajustar</string>
+    <string name="fill">Rellenar</string>
+    <string name="opacity">Opacidad</string>
+    <string name="cat_edit">Editar</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_effects">Efectos</string>
+    <string name="cat_canvas">Lienzo</string>
+    <string name="flip_v">Voltear vertical</string>
+    <string name="fade">Fundido</string>
+    <string name="kf">Fotograma clave</string>
+    <string name="extract">Extraer audio</string>
+    <string name="srt">Importar subtítulos (SRT)</string>
+    <string name="drafts">Borradores</string>
+    <string name="speak">Texto a voz</string>
 </resources>

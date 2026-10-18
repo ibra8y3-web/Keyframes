@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Adicionar mídia</string>
     <string name="export">Exportar</string>
     <string name="trim">Cortar</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Narração</string>
     <string name="stop">Parar</string>
     <string name="new_project">Novo projeto</string>
+    <string name="tagline">Edição de vídeo completa</string>
+    <string name="continue_editing">Continuar editando</string>
+    <string name="tools_title">Ferramentas</string>
+    <string name="edit_project">Editar projeto</string>
+    <string name="no_watermark">Sem marca de água</string>
+    <string name="f_midnight">Meia-noite</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Dourado</string>
+    <string name="motion">Movimento</string>
+    <string name="anim_in">Entrada</string>
+    <string name="anim_out">Saída</string>
+    <string name="m_kenin">Aproximar</string>
+    <string name="m_kenout">Afastar</string>
+    <string name="m_pulse">Pulso</string>
+    <string name="m_shake">Tremor</string>
+    <string name="m_pop">Surgir</string>
+    <string name="pitch">Tom</string>
+    <string name="tilt">Inclinar</string>
+    <string name="fit">Ajustar</string>
+    <string name="fill">Preencher</string>
+    <string name="opacity">Opacidade</string>
+    <string name="cat_edit">Editar</string>
+    <string name="cat_audio">Áudio</string>
+    <string name="cat_effects">Efeitos</string>
+    <string name="cat_canvas">Tela</string>
+    <string name="flip_v">Inverter vertical</string>
+    <string name="fade">Fade</string>
+    <string name="kf">Quadro-chave</string>
+    <string name="extract">Extrair áudio</string>
+    <string name="srt">Importar legendas (SRT)</string>
+    <string name="drafts">Rascunhos</string>
+    <string name="speak">Texto para fala</string>
 </resources>

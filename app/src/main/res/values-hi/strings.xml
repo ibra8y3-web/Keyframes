@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">मीडिया जोड़ें</string>
     <string name="export">एक्सपोर्ट</string>
     <string name="trim">ट्रिम</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">वॉइसओवर</string>
     <string name="stop">रोकें</string>
     <string name="new_project">नया प्रोजेक्ट</string>
+    <string name="tagline">ऑल-इन-वन वीडियो एडिटिंग</string>
+    <string name="continue_editing">एडिटिंग जारी रखें</string>
+    <string name="tools_title">टूल्स</string>
+    <string name="edit_project">प्रोजेक्ट एडिट करें</string>
+    <string name="no_watermark">कोई वॉटरमार्क नहीं</string>
+    <string name="f_midnight">मिडनाइट</string>
+    <string name="f_vintage">विंटेज</string>
+    <string name="f_golden">गोल्डन</string>
+    <string name="motion">गति</string>
+    <string name="anim_in">प्रवेश</string>
+    <string name="anim_out">निकास</string>
+    <string name="m_kenin">ज़ूम इन</string>
+    <string name="m_kenout">ज़ूम आउट</string>
+    <string name="m_pulse">पल्स</string>
+    <string name="m_shake">कंपन</string>
+    <string name="m_pop">पॉप</string>
+    <string name="pitch">पिच</string>
+    <string name="tilt">झुकाव</string>
+    <string name="fit">फ़िट</string>
+    <string name="fill">भरें</string>
+    <string name="opacity">अपारदर्शिता</string>
+    <string name="cat_edit">संपादन</string>
+    <string name="cat_audio">ऑडियो</string>
+    <string name="cat_effects">इफ़ेक्ट</string>
+    <string name="cat_canvas">कैनवस</string>
+    <string name="flip_v">ऊर्ध्वाधर पलटें</string>
+    <string name="fade">फ़ेड</string>
+    <string name="kf">कीफ़्रेम</string>
+    <string name="extract">ऑडियो निकालें</string>
+    <string name="srt">सबटाइटल इम्पोर्ट (SRT)</string>
+    <string name="drafts">ड्राफ़्ट</string>
+    <string name="speak">टेक्स्ट टू स्पीच</string>
 </resources>

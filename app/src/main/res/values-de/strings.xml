@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Medien hinzufügen</string>
     <string name="export">Exportieren</string>
     <string name="trim">Kürzen</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Sprachaufnahme</string>
     <string name="stop">Stopp</string>
     <string name="new_project">Neues Projekt</string>
+    <string name="tagline">Videobearbeitung alles in einem</string>
+    <string name="continue_editing">Weiterbearbeiten</string>
+    <string name="tools_title">Werkzeuge</string>
+    <string name="edit_project">Projekt bearbeiten</string>
+    <string name="no_watermark">Ohne Wasserzeichen</string>
+    <string name="f_midnight">Mitternacht</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Golden</string>
+    <string name="motion">Bewegung</string>
+    <string name="anim_in">Ein</string>
+    <string name="anim_out">Aus</string>
+    <string name="m_kenin">Heranzoomen</string>
+    <string name="m_kenout">Herauszoomen</string>
+    <string name="m_pulse">Pulsieren</string>
+    <string name="m_shake">Wackeln</string>
+    <string name="m_pop">Aufpoppen</string>
+    <string name="pitch">Tonhöhe</string>
+    <string name="tilt">Neigen</string>
+    <string name="fit">Einpassen</string>
+    <string name="fill">Füllen</string>
+    <string name="opacity">Deckkraft</string>
+    <string name="cat_edit">Bearbeiten</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_effects">Effekte</string>
+    <string name="cat_canvas">Leinwand</string>
+    <string name="flip_v">Vertikal spiegeln</string>
+    <string name="fade">Überblenden</string>
+    <string name="kf">Keyframe</string>
+    <string name="extract">Audio extrahieren</string>
+    <string name="srt">Untertitel importieren (SRT)</string>
+    <string name="drafts">Entwürfe</string>
+    <string name="speak">Text-zu-Sprache</string>
 </resources>

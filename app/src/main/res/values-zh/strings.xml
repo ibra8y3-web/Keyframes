@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">添加素材</string>
     <string name="export">导出</string>
     <string name="trim">裁剪</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">配音</string>
     <string name="stop">停止</string>
     <string name="new_project">新建项目</string>
+    <string name="tagline">一站式视频剪辑</string>
+    <string name="continue_editing">继续编辑</string>
+    <string name="tools_title">工具</string>
+    <string name="edit_project">编辑项目</string>
+    <string name="no_watermark">无水印</string>
+    <string name="f_midnight">午夜</string>
+    <string name="f_vintage">复古</string>
+    <string name="f_golden">金色</string>
+    <string name="motion">动效</string>
+    <string name="anim_in">入场</string>
+    <string name="anim_out">出场</string>
+    <string name="m_kenin">推近</string>
+    <string name="m_kenout">拉远</string>
+    <string name="m_pulse">脉动</string>
+    <string name="m_shake">抖动</string>
+    <string name="m_pop">弹出</string>
+    <string name="pitch">音调</string>
+    <string name="tilt">倾斜</string>
+    <string name="fit">适应</string>
+    <string name="fill">填充</string>
+    <string name="opacity">不透明度</string>
+    <string name="cat_edit">编辑</string>
+    <string name="cat_audio">音频</string>
+    <string name="cat_effects">特效</string>
+    <string name="cat_canvas">画布</string>
+    <string name="flip_v">垂直翻转</string>
+    <string name="fade">渐变</string>
+    <string name="kf">关键帧</string>
+    <string name="extract">提取音频</string>
+    <string name="srt">导入字幕 (SRT)</string>
+    <string name="drafts">草稿</string>
+    <string name="speak">文字转语音</string>
 </resources>

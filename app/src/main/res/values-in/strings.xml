@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Keyframes</string>
+    <string name="app_name">VideoEdit AI</string>
     <string name="add_media">Tambah media</string>
     <string name="export">Ekspor</string>
     <string name="trim">Pangkas</string>
@@ -59,4 +59,36 @@
     <string name="voiceover">Sulih suara</string>
     <string name="stop">Berhenti</string>
     <string name="new_project">Proyek baru</string>
+    <string name="tagline">Edit video serba ada</string>
+    <string name="continue_editing">Lanjutkan mengedit</string>
+    <string name="tools_title">Alat</string>
+    <string name="edit_project">Edit proyek</string>
+    <string name="no_watermark">Tanpa watermark</string>
+    <string name="f_midnight">Tengah malam</string>
+    <string name="f_vintage">Vintage</string>
+    <string name="f_golden">Keemasan</string>
+    <string name="motion">Gerakan</string>
+    <string name="anim_in">Masuk</string>
+    <string name="anim_out">Keluar</string>
+    <string name="m_kenin">Perbesar</string>
+    <string name="m_kenout">Perkecil</string>
+    <string name="m_pulse">Denyut</string>
+    <string name="m_shake">Getar</string>
+    <string name="m_pop">Muncul</string>
+    <string name="pitch">Nada</string>
+    <string name="tilt">Miring</string>
+    <string name="fit">Pas</string>
+    <string name="fill">Isi</string>
+    <string name="opacity">Opasitas</string>
+    <string name="cat_edit">Edit</string>
+    <string name="cat_audio">Audio</string>
+    <string name="cat_effects">Efek</string>
+    <string name="cat_canvas">Kanvas</string>
+    <string name="flip_v">Balik vertikal</string>
+    <string name="fade">Fade</string>
+    <string name="kf">Keyframe</string>
+    <string name="extract">Ekstrak audio</string>
+    <string name="srt">Impor subtitel (SRT)</string>
+    <string name="drafts">Draf</string>
+    <string name="speak">Teks ke suara</string>
 </resources>
