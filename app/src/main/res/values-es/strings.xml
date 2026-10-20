@@ -91,4 +91,20 @@
     <string name="srt">Importar subtítulos (SRT)</string>
     <string name="drafts">Borradores</string>
     <string name="speak">Texto a voz</string>
+    <string name="expo">Exposición</string>
+    <string name="shadows">Sombras</string>
+    <string name="highlights">Luces</string>
+    <string name="matte">Mate</string>
+    <string name="tint">Matiz</string>
+    <string name="apply_all">Aplicar a todo</string>
+    <string name="crash">Último informe de fallo</string>
+    <string name="transition">Transición</string>
+    <string name="color_clip">Clip de color</string>
+    <string name="auto_enhance">Mejora automática</string>
+    <string name="lut">Importar LUT</string>
+    <string name="loop_end">Repetir hasta el final</string>
+    <string name="m_bounce">Rebote</string>
+    <string name="m_drift">Deriva</string>
+    <string name="m_flash">Destello</string>
+    <string name="m_strobe">Estroboscopio</string>
 </resources>

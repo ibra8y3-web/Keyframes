@@ -91,4 +91,20 @@
     <string name="srt">Impor subtitel (SRT)</string>
     <string name="drafts">Draf</string>
     <string name="speak">Teks ke suara</string>
+    <string name="expo">Eksposur</string>
+    <string name="shadows">Bayangan</string>
+    <string name="highlights">Sorotan</string>
+    <string name="matte">Matte</string>
+    <string name="tint">Rona</string>
+    <string name="apply_all">Terapkan ke semua</string>
+    <string name="crash">Laporan crash terakhir</string>
+    <string name="transition">Transisi</string>
+    <string name="color_clip">Klip warna</string>
+    <string name="auto_enhance">Peningkatan otomatis</string>
+    <string name="lut">Impor LUT</string>
+    <string name="loop_end">Ulangi sampai akhir</string>
+    <string name="m_bounce">Memantul</string>
+    <string name="m_drift">Melayang</string>
+    <string name="m_flash">Kilat</string>
+    <string name="m_strobe">Strobo</string>
 </resources>

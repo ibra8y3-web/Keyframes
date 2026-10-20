@@ -91,4 +91,20 @@
     <string name="srt">Импорт субтитров (SRT)</string>
     <string name="drafts">Черновики</string>
     <string name="speak">Текст в речь</string>
+    <string name="expo">Экспозиция</string>
+    <string name="shadows">Тени</string>
+    <string name="highlights">Света</string>
+    <string name="matte">Матовость</string>
+    <string name="tint">Оттенок</string>
+    <string name="apply_all">Применить ко всем</string>
+    <string name="crash">Отчёт о последнем сбое</string>
+    <string name="transition">Переход</string>
+    <string name="color_clip">Цветной клип</string>
+    <string name="auto_enhance">Автоулучшение</string>
+    <string name="lut">Импорт LUT</string>
+    <string name="loop_end">Повторить до конца</string>
+    <string name="m_bounce">Прыжок</string>
+    <string name="m_drift">Дрейф</string>
+    <string name="m_flash">Вспышка</string>
+    <string name="m_strobe">Стробоскоп</string>
 </resources>

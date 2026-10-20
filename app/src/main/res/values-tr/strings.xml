@@ -91,4 +91,20 @@
     <string name="srt">Altyazı içe aktar (SRT)</string>
     <string name="drafts">Taslaklar</string>
     <string name="speak">Metinden konuşmaya</string>
+    <string name="expo">Pozlama</string>
+    <string name="shadows">Gölgeler</string>
+    <string name="highlights">Parlak alanlar</string>
+    <string name="matte">Mat</string>
+    <string name="tint">Ton</string>
+    <string name="apply_all">Tümüne uygula</string>
+    <string name="crash">Son çökme raporu</string>
+    <string name="transition">Geçiş efekti</string>
+    <string name="color_clip">Renk klibi</string>
+    <string name="auto_enhance">Otomatik iyileştir</string>
+    <string name="lut">LUT içe aktar</string>
+    <string name="loop_end">Sona kadar doldur</string>
+    <string name="m_bounce">Zıplama</string>
+    <string name="m_drift">Süzülme</string>
+    <string name="m_flash">Flaş</string>
+    <string name="m_strobe">Strobe</string>
 </resources>

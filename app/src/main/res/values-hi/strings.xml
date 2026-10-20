@@ -91,4 +91,20 @@
     <string name="srt">सबटाइटल इम्पोर्ट (SRT)</string>
     <string name="drafts">ड्राफ़्ट</string>
     <string name="speak">टेक्स्ट टू स्पीच</string>
+    <string name="expo">एक्सपोज़र</string>
+    <string name="shadows">छायाएँ</string>
+    <string name="highlights">हाइलाइट्स</string>
+    <string name="matte">मैट</string>
+    <string name="tint">टिंट</string>
+    <string name="apply_all">सभी पर लागू करें</string>
+    <string name="crash">आख़िरी क्रैश रिपोर्ट</string>
+    <string name="transition">ट्रांज़िशन</string>
+    <string name="color_clip">कलर क्लिप</string>
+    <string name="auto_enhance">ऑटो एन्हांस</string>
+    <string name="lut">LUT इम्पोर्ट</string>
+    <string name="loop_end">अंत तक दोहराएँ</string>
+    <string name="m_bounce">उछाल</string>
+    <string name="m_drift">बहाव</string>
+    <string name="m_flash">फ़्लैश</string>
+    <string name="m_strobe">स्ट्रोब</string>
 </resources>

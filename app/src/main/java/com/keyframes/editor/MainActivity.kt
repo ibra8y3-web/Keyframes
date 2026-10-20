@@ -1,6 +1,8 @@
 package com.keyframes.editor
 
 import android.os.Bundle
+import android.util.Log
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +17,11 @@ import androidx.compose.ui.graphics.Color
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            runCatching { File(filesDir, "crash.txt").writeText(Log.getStackTraceString(e)) }
+            previous?.uncaughtException(t, e)
+        }
         enableEdgeToEdge()
         setContent {
             MaterialTheme(

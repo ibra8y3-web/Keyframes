@@ -7,7 +7,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import android.content.Intent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,8 +19,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +43,7 @@ import coil.compose.AsyncImage
 import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
+import java.io.File
 
 @Composable
 fun AppRoot() {
@@ -58,6 +63,7 @@ fun HomeScreen(vm: EditorViewModel = viewModel(), onOpen: (Tool?) -> Unit) {
     val drafts by vm.drafts.collectAsStateWithLifecycle()
     val loader = remember { ImageLoader.Builder(ctx).components { add(VideoFrameDecoder.Factory()) }.build() }
     LaunchedEffect(Unit) { vm.refreshDrafts() }
+    var crash by remember { mutableStateOf(runCatching { File(ctx.filesDir, "crash.txt").readText() }.getOrNull()) }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) { vm.newDraft(); vm.addMedia(uris); onOpen(null) }
     }
@@ -87,6 +93,21 @@ fun HomeScreen(vm: EditorViewModel = viewModel(), onOpen: (Tool?) -> Unit) {
                 Text(stringResource(R.string.tagline), color = Color(0xDDFFFFFF))
             }
         }
+        crash?.let { txt ->
+            Spacer(Modifier.height(14.dp))
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0x33FF5252))) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.crash), style = MaterialTheme.typography.titleSmall)
+                    Text(txt.lineSequence().take(4).joinToString("\n"), maxLines = 4, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
+                    Row {
+                        TextButton({
+                            ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, txt) }, null))
+                        }) { Text(stringResource(R.string.share)) }
+                        TextButton({ File(ctx.filesDir, "crash.txt").delete(); crash = null }) { Text(stringResource(R.string.close)) }
+                    }
+                }
+            }
+        }
         if (drafts.isNotEmpty()) {
             Spacer(Modifier.height(20.dp))
             Text(stringResource(R.string.drafts), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -98,7 +119,7 @@ fun HomeScreen(vm: EditorViewModel = viewModel(), onOpen: (Tool?) -> Unit) {
                             .clickable { vm.openDraft(d.id); onOpen(null) }
                     ) {
                         AsyncImage(
-                            model = ImageRequest.Builder(ctx).data(d.thumb).videoFrameMillis(0).build(),
+                            model = ImageRequest.Builder(ctx).data(d.thumb).videoFrameMillis(0).size(300, 300).build(),
                             imageLoader = loader, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                         )
                         Text(
@@ -108,14 +129,17 @@ fun HomeScreen(vm: EditorViewModel = viewModel(), onOpen: (Tool?) -> Unit) {
                         IconButton({ vm.deleteDraft(d.id) }, Modifier.align(Alignment.TopEnd).size(32.dp)) {
                             Icon(Icons.Default.Close, null, Modifier.size(16.dp))
                         }
+                        IconButton({ vm.duplicateDraft(d.id) }, Modifier.align(Alignment.TopStart).size(32.dp)) {
+                            Icon(Icons.Default.ContentCopy, null, Modifier.size(16.dp))
+                        }
                     }
                 }
             }
         }
         Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("480p – 4K", "H.264 · HEVC", stringResource(R.string.no_watermark)).forEach {
-                Text(it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Color(0x22FFFFFF)).padding(horizontal = 10.dp, vertical = 5.dp))
+                Text(it, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium, modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Color(0x22FFFFFF)).padding(horizontal = 10.dp, vertical = 5.dp))
             }
         }
         Spacer(Modifier.height(22.dp))

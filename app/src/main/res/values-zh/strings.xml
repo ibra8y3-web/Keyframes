@@ -91,4 +91,20 @@
     <string name="srt">导入字幕 (SRT)</string>
     <string name="drafts">草稿</string>
     <string name="speak">文字转语音</string>
+    <string name="expo">曝光</string>
+    <string name="shadows">阴影</string>
+    <string name="highlights">高光</string>
+    <string name="matte">哑光</string>
+    <string name="tint">色调</string>
+    <string name="apply_all">应用到全部</string>
+    <string name="crash">上次崩溃报告</string>
+    <string name="transition">转场</string>
+    <string name="color_clip">色块片段</string>
+    <string name="auto_enhance">自动优化</string>
+    <string name="lut">导入 LUT</string>
+    <string name="loop_end">循环至结尾</string>
+    <string name="m_bounce">弹跳</string>
+    <string name="m_drift">漂移</string>
+    <string name="m_flash">闪光</string>
+    <string name="m_strobe">频闪</string>
 </resources>

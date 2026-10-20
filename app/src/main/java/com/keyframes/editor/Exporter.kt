@@ -52,6 +52,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.pow
 import kotlin.math.sin
 
 private val SEPIA = floatArrayOf(
@@ -78,7 +80,75 @@ private val LUT_FADE by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple
 private val LUT_MIDNIGHT by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(r * .72f + .02f * l, g * .84f + .03f * l, b * 1.02f + .06f) } }
 private val LUT_VINTAGE by lazy { makeLut { r, g, b -> val l = lum(r, g, b); Triple(.10f + .85f * (l * .8f + r * .25f), .08f + .80f * (l * .85f + g * .15f), .05f + .70f * (l * .75f + b * .1f)) } }
 private val LUT_GOLDEN by lazy { makeLut { r, g, b -> Triple(r * 1.10f + .04f, g * 1.02f + .02f, b * .85f) } }
+private fun gradeLut(gr: Float, gg: Float, gb: Float, lr: Float, lg: Float, lb: Float, con: Float, sat: Float) = makeLut { r, g, b ->
+    val l = lum(r, g, b)
+    fun ch(v: Float, gain: Float, lift: Float): Float = (((l + (v - l) * sat) * gain + lift) - .5f) * con + .5f
+    Triple(ch(r, gr, lr), ch(g, gg, lg), ch(b, gb, lb))
+}
+private val LUT_SUNSET by lazy { gradeLut(1.12f, .98f, .78f, .05f, .01f, 0f, 1.08f, 1.1f) }
+private val LUT_FOREST by lazy { gradeLut(.9f, 1.08f, .92f, 0f, .02f, 0f, 1.05f, 1f) }
+private val LUT_ROSE by lazy { gradeLut(1.08f, .93f, 1.03f, .03f, 0f, .03f, 1f, 1.05f) }
+private val LUT_OCEAN by lazy { gradeLut(.82f, 1f, 1.12f, 0f, .02f, .03f, 1.05f, 1.05f) }
+private val LUT_CYBER by lazy { gradeLut(1.1f, .9f, 1.15f, .03f, 0f, .05f, 1.2f, 1.25f) }
+private val LUT_MATTE by lazy { gradeLut(.9f, .9f, .92f, .08f, .08f, .09f, .88f, .9f) }
+private val LUT_BLEACH by lazy { gradeLut(1f, 1f, 1f, 0f, 0f, 0f, 1.3f, .45f) }
+private val LUT_DRAMA by lazy { gradeLut(1f, 1f, 1f, 0f, 0f, 0f, 1.35f, .85f) }
+private val LUT_PASTEL by lazy { gradeLut(.78f, .78f, .8f, .22f, .22f, .22f, .9f, .8f) }
+private val LUT_RETRO by lazy { gradeLut(.95f, .9f, .7f, .1f, .1f, .06f, .9f, .85f) }
+private val LUT_SUNRISE by lazy { gradeLut(1.06f, 1f, .9f, .06f, .03f, .04f, 1f, 1.05f) }
+private val LUT_MOODY by lazy { gradeLut(.78f, .86f, .92f, 0f, .01f, .02f, 1.15f, .9f) }
 private val LUT_NOIR by lazy { makeLut { r, g, b -> val v = (lum(r, g, b) - .5f) * 1.45f + .5f; Triple(v, v, v) } }
+
+/** Parses an Adobe .cube 3D LUT file into a real colour lookup effect. */
+internal fun parseCube(text: String): SingleColorLut {
+    var n = 0
+    val vals = ArrayList<FloatArray>()
+    for (raw in text.lineSequence()) {
+        val line = raw.trim()
+        if (line.isEmpty() || line.startsWith("#")) continue
+        if (line.startsWith("LUT_3D_SIZE")) { n = line.split(Regex("\\s+"))[1].toInt(); continue }
+        val c0 = line[0]
+        if (!(c0.isDigit() || c0 == '-' || c0 == '.')) continue
+        val p = line.split(Regex("\\s+"))
+        if (p.size >= 3) vals += floatArrayOf(p[0].toFloat(), p[1].toFloat(), p[2].toFloat())
+    }
+    require(n >= 2 && vals.size == n * n * n) { "Invalid .cube file" }
+    val cube = Array(n) { Array(n) { IntArray(n) } }
+    for (i in vals.indices) {
+        val v = vals[i]
+        cube[i % n][(i / n) % n][i / (n * n)] = Color.rgb(
+            (v[0].coerceIn(0f, 1f) * 255).toInt(), (v[1].coerceIn(0f, 1f) * 255).toInt(), (v[2].coerceIn(0f, 1f) * 255).toInt()
+        )
+    }
+    return SingleColorLut.createFromCube(cube)
+}
+
+private val fileLuts = HashMap<String, SingleColorLut?>()
+
+private fun lutFromFile(path: String): SingleColorLut? =
+    fileLuts.getOrPut(path) { runCatching { parseCube(File(path).readText()) }.getOrNull() }
+
+private val toneCache = HashMap<List<Float>, SingleColorLut>()
+
+/** Exposure, shadows, highlights, matte and tint, baked into a real 3D colour LUT. */
+private fun toneLut(c: Clip): SingleColorLut {
+    val key = listOf(c.expo, c.shadows, c.highlights, c.matte, c.tint)
+    return toneCache.getOrPut(key) {
+        if (toneCache.size > 20) toneCache.clear()
+        val gamma = 2.0.pow(c.expo.toDouble()).toFloat()
+        makeLut { r, g, b ->
+            fun ch(v: Float, adj: Float): Float {
+                var x = v.pow(1f / gamma)
+                val l = x
+                x += c.shadows * (1f - l) * (1f - l) * .3f
+                x += c.highlights * l * l * .3f
+                x = x * (1f - c.matte * .5f) + c.matte * .12f
+                return x + adj
+            }
+            Triple(ch(r, -c.tint * .04f), ch(g, c.tint * .08f), ch(b, -c.tint * .04f))
+        }
+    }
+}
 
 private val FONTS = listOf("sans-serif", "serif", "monospace", "cursive")
 
@@ -92,6 +162,9 @@ private fun motionMatrix(c: Clip, us: Long): Matrix {
         Loop.KEN_OUT -> sc *= 1.25f - .25f * (ms / len).coerceIn(0f, 1f)
         Loop.PULSE -> sc *= 1f + .06f * sin(ms / 1000f * 2f * PI.toFloat() * 1.5f)
         Loop.SHAKE -> { tx += .02f * sin(ms / 20f); ty += .02f * cos(ms / 17f) }
+        Loop.BOUNCE -> ty += .05f * sin(ms / 1000f * 2f * PI.toFloat() * 1.5f)
+        Loop.DRIFT -> { sc *= 1.12f; tx += .06f * sin(ms / 1000f * PI.toFloat() * .5f) }
+        Loop.FLASH, Loop.STROBE -> {}
         Loop.NONE -> {}
     }
     if (c.keys.isNotEmpty()) {
@@ -154,14 +227,36 @@ fun clipEffects(c: Clip): List<Effect> {
         Fx.MIDNIGHT -> l += LUT_MIDNIGHT
         Fx.VINTAGE -> l += LUT_VINTAGE
         Fx.GOLDEN -> l += LUT_GOLDEN
+        Fx.SUNSET -> l += LUT_SUNSET
+        Fx.FOREST -> l += LUT_FOREST
+        Fx.ROSE -> l += LUT_ROSE
+        Fx.OCEAN -> l += LUT_OCEAN
+        Fx.CYBER -> l += LUT_CYBER
+        Fx.MATTE -> l += LUT_MATTE
+        Fx.BLEACH -> l += LUT_BLEACH
+        Fx.DRAMA -> l += LUT_DRAMA
+        Fx.PASTEL -> l += LUT_PASTEL
+        Fx.RETRO -> l += LUT_RETRO
+        Fx.SUNRISE -> l += LUT_SUNRISE
+        Fx.MOODY -> l += LUT_MOODY
         Fx.NONE -> {}
     }
     if (c.temp != 0f) l += RgbAdjustment.Builder().setRedScale(1f + .3f * c.temp).setBlueScale(1f - .3f * c.temp).build()
     if (c.bright != 0f) l += Brightness(c.bright)
     if (c.contrast != 0f) l += Contrast(c.contrast)
     if (c.sat != 0f || c.hue != 0f) l += HslAdjustment.Builder().adjustHue(c.hue * 180f).adjustSaturation(c.sat * 100f).build()
+    if (c.expo != 0f || c.shadows != 0f || c.highlights != 0f || c.matte != 0f || c.tint != 0f) l += toneLut(c)
     if (c.loop != Loop.NONE || c.animIn != Anim.NONE || c.animOut != Anim.NONE || c.keys.isNotEmpty()) {
         l += MatrixTransformation { us -> motionMatrix(c, us) }
+    }
+    c.lut?.let { path -> lutFromFile(path)?.let { l += it } }
+    if (c.loop == Loop.FLASH || c.loop == Loop.STROBE) {
+        val strobe = c.loop == Loop.STROBE
+        l += RgbMatrix { us, _ ->
+            val ms = us / 1000f
+            val k = if (strobe) (if (((ms / 140f).toInt() % 2) == 0) 1f else 0.2f) else 1f + 1.4f * exp(-((ms % 1200f) / 160f))
+            floatArrayOf(k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, k, 0f, 0f, 0f, 0f, 1f)
+        }
     }
     if (c.fadeIn > 0 || c.fadeOut > 0) {
         val len = c.lenMs.toFloat()
@@ -206,8 +301,8 @@ private class TimedText(val t: TextItem) : TextOverlay() {
         var alpha = if (t.anim == 1) p else 1f
         if (ms !in t.start until t.end) alpha = 0f
         val b = OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(0f, if (t.anim == 3) t.y - (1f - p) * 0.25f else t.y)
-            .setAlphaScale(alpha)
+            .setBackgroundFrameAnchor(t.x, if (t.anim == 3) t.y - (1f - p) * 0.25f else t.y)
+            .setAlphaScale(alpha).setRotationDegrees(t.rot)
         if (t.anim == 2) { val sc = p.coerceAtLeast(0.01f); b.setScale(sc, sc) }
         return b.build()
     }
@@ -223,7 +318,7 @@ private class TimedSticker(val s: Sticker, val bmp: Bitmap) : BitmapOverlay() {
         val sc = if (s.anim == 2) s.scale * p.coerceAtLeast(0.01f) else s.scale
         return OverlaySettings.Builder()
             .setBackgroundFrameAnchor(s.x, if (s.anim == 3) s.y - (1f - p) * 0.25f else s.y)
-            .setScale(sc, sc).setAlphaScale(alpha).build()
+            .setScale(sc, sc).setAlphaScale(alpha).setRotationDegrees(s.rot).build()
     }
 }
 

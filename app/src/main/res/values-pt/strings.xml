@@ -91,4 +91,20 @@
     <string name="srt">Importar legendas (SRT)</string>
     <string name="drafts">Rascunhos</string>
     <string name="speak">Texto para fala</string>
+    <string name="expo">Exposição</string>
+    <string name="shadows">Sombras</string>
+    <string name="highlights">Realces</string>
+    <string name="matte">Fosco</string>
+    <string name="tint">Matiz</string>
+    <string name="apply_all">Aplicar a todos</string>
+    <string name="crash">Último relatório de falha</string>
+    <string name="transition">Transição</string>
+    <string name="color_clip">Clipe de cor</string>
+    <string name="auto_enhance">Melhoria automática</string>
+    <string name="lut">Importar LUT</string>
+    <string name="loop_end">Repetir até o fim</string>
+    <string name="m_bounce">Quicar</string>
+    <string name="m_drift">Deriva</string>
+    <string name="m_flash">Flash</string>
+    <string name="m_strobe">Estroboscópio</string>
 </resources>

@@ -48,15 +48,19 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.VideoFrameDecoder
+import android.util.Log
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
@@ -64,6 +68,7 @@ enum class Tool(val icon: ImageVector, val label: Int, val action: Boolean = fal
     TRIM(Icons.Default.Timeline, R.string.trim),
     SPLIT(Icons.Default.ContentCut, R.string.split, true),
     FREEZE(Icons.Default.PauseCircle, R.string.freeze, true),
+    TRANS(Icons.Default.SwapHoriz, R.string.transition),
     SPEED(Icons.Default.Speed, R.string.speed),
     ZOOM(Icons.Default.ZoomIn, R.string.zoom),
     ROTATE(Icons.Default.RotateRight, R.string.rotate, true),
@@ -83,15 +88,18 @@ enum class Tool(val icon: ImageVector, val label: Int, val action: Boolean = fal
     ADJUST(Icons.Default.Tune, R.string.adjust),
     MOTION(Icons.Default.Animation, R.string.motion),
     FADE(Icons.Default.Gradient, R.string.fade),
-    RATIO(Icons.Default.AspectRatio, R.string.ratio)
+    ALL(Icons.Default.DoneAll, R.string.apply_all, true),
+    AUTO(Icons.Default.AutoFixHigh, R.string.auto_enhance, true),
+    RATIO(Icons.Default.AspectRatio, R.string.ratio),
+    BG(Icons.Default.Palette, R.string.color_clip)
 }
 
 enum class Cat(val icon: ImageVector, val label: Int, val tools: List<Tool>) {
-    EDIT(Icons.Default.ContentCut, R.string.cat_edit, listOf(Tool.TRIM, Tool.SPLIT, Tool.FREEZE, Tool.SPEED, Tool.ZOOM, Tool.ROTATE, Tool.MIRROR, Tool.FLIPV, Tool.LEFT, Tool.RIGHT, Tool.DUP, Tool.DEL)),
+    EDIT(Icons.Default.ContentCut, R.string.cat_edit, listOf(Tool.TRIM, Tool.SPLIT, Tool.FREEZE, Tool.TRANS, Tool.SPEED, Tool.ZOOM, Tool.ROTATE, Tool.MIRROR, Tool.FLIPV, Tool.LEFT, Tool.RIGHT, Tool.DUP, Tool.DEL)),
     AUDIO(Icons.Default.MusicNote, R.string.cat_audio, listOf(Tool.AUDIO, Tool.VOLUME, Tool.PITCH)),
     TEXT(Icons.Default.TextFields, R.string.text, listOf(Tool.TEXT, Tool.STICKER, Tool.SRT)),
-    FX(Icons.Default.AutoAwesome, R.string.cat_effects, listOf(Tool.FILTER, Tool.ADJUST, Tool.MOTION, Tool.FADE)),
-    CANVAS(Icons.Default.AspectRatio, R.string.cat_canvas, listOf(Tool.RATIO))
+    FX(Icons.Default.AutoAwesome, R.string.cat_effects, listOf(Tool.FILTER, Tool.ADJUST, Tool.AUTO, Tool.MOTION, Tool.FADE, Tool.ALL)),
+    CANVAS(Icons.Default.AspectRatio, R.string.cat_canvas, listOf(Tool.RATIO, Tool.BG))
 }
 
 private val ACCENT = Color(0xFF00E5C3)
@@ -109,6 +117,9 @@ private fun fxLabel(f: Fx) = when (f) {
     Fx.INVERT -> R.string.f_invert; Fx.WARM -> R.string.f_warm; Fx.COOL -> R.string.f_cool
     Fx.CINE -> R.string.f_cine; Fx.VIVID -> R.string.f_vivid; Fx.FADE -> R.string.f_fade; Fx.NOIR -> R.string.f_noir
     Fx.MIDNIGHT -> R.string.f_midnight; Fx.VINTAGE -> R.string.f_vintage; Fx.GOLDEN -> R.string.f_golden
+    Fx.SUNSET -> R.string.f_sunset; Fx.FOREST -> R.string.f_forest; Fx.ROSE -> R.string.f_rose; Fx.OCEAN -> R.string.f_ocean
+    Fx.CYBER -> R.string.f_cyber; Fx.MATTE -> R.string.f_matte; Fx.BLEACH -> R.string.f_bleach; Fx.DRAMA -> R.string.f_drama
+    Fx.PASTEL -> R.string.f_pastel; Fx.RETRO -> R.string.f_retro; Fx.SUNRISE -> R.string.f_sunrise; Fx.MOODY -> R.string.f_moody
 }
 
 @Composable
@@ -138,19 +149,57 @@ private fun loopLabel(l: Loop): String = when (l) {
     Loop.KEN_OUT -> stringResource(R.string.m_kenout)
     Loop.PULSE -> stringResource(R.string.m_pulse)
     Loop.SHAKE -> stringResource(R.string.m_shake)
+    Loop.BOUNCE -> stringResource(R.string.m_bounce)
+    Loop.DRIFT -> stringResource(R.string.m_drift)
+    Loop.FLASH -> stringResource(R.string.m_flash)
+    Loop.STROBE -> stringResource(R.string.m_strobe)
 }
 
-private fun applyPreview(player: ExoPlayer, c: Clip, recording: Boolean) {
+private fun applyPlayback(player: ExoPlayer, c: Clip, recording: Boolean) {
     player.playbackParameters = PlaybackParameters(if (c.isImage) 1f else c.speed, if (c.isImage) 1f else c.pitch)
     player.volume = if (recording) 0f else c.volume.coerceIn(0f, 1f)
-    player.setVideoEffects(clipEffects(c))
 }
+
+@Composable
+private fun transLabel(i: Int): String = when (i) {
+    0 -> stringResource(R.string.f_none)
+    1 -> stringResource(R.string.fade)
+    2 -> "←"
+    3 -> "→"
+    4 -> "↑"
+    5 -> "↓"
+    6 -> stringResource(R.string.zoom)
+    else -> stringResource(R.string.m_pop)
+}
+
+private fun curTrans(a: Clip, b: Clip): Int = when {
+    a.fadeOut > 0 && b.fadeIn > 0 && a.animOut == Anim.NONE -> 1
+    a.animOut == Anim.SLIDE_LEFT && b.animIn == Anim.SLIDE_RIGHT -> 2
+    a.animOut == Anim.SLIDE_RIGHT && b.animIn == Anim.SLIDE_LEFT -> 3
+    a.animOut == Anim.SLIDE_DOWN && b.animIn == Anim.SLIDE_UP -> 4
+    a.animOut == Anim.SLIDE_UP && b.animIn == Anim.SLIDE_DOWN -> 5
+    a.animOut == Anim.ZOOM && b.animIn == Anim.ZOOM -> 6
+    a.animOut == Anim.POP && b.animIn == Anim.POP -> 7
+    else -> 0
+}
+
+private class TextPreset(val color: Int, val bold: Boolean, val bg: Boolean, val font: Int, val size: Int)
+
+private val TEXT_PRESETS = listOf(
+    TextPreset(-1, false, false, 0, 64),
+    TextPreset(-1, true, false, 1, 110),
+    TextPreset(-1, false, true, 0, 52),
+    TextPreset(0xFF00E5C3.toInt(), true, false, 0, 80),
+    TextPreset(0xFFFFEB3B.toInt(), true, true, 2, 60),
+    TextPreset(0xFFFF80AB.toInt(), false, false, 3, 90)
+)
 
 private class PanelCtx(
     val recording: Boolean, val selKind: Int, val selId: Long,
     val abs: () -> Long, val onSelect: (Int, Long) -> Unit, val onClear: () -> Unit,
     val pickAudio: () -> Unit, val pickImage: () -> Unit, val onRecord: () -> Unit,
-    val onAddKey: () -> Unit, val onSpeak: (String) -> Unit, val onSfx: (Int) -> Unit, val onExtract: () -> Unit
+    val onAddKey: () -> Unit, val onSpeak: (String) -> Unit, val onSfx: (Int) -> Unit, val onExtract: () -> Unit,
+    val onShape: (Int, Int) -> Long, val pickLut: () -> Unit
 )
 
 @Composable
@@ -170,11 +219,12 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
     var showExport by remember { mutableStateOf(false) }
     var full by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf(false) }
+    var fxOk by remember { mutableStateOf(true) }
     val absState = remember { mutableStateOf(0L) }
     val pNow = rememberUpdatedState(p)
     BackHandler(enabled = full) { full = false }
 
-    val player = remember { ExoPlayer.Builder(ctx).build() }
+    val player = remember { ExoPlayer.Builder(ctx, DefaultRenderersFactory(ctx).setEnableDecoderFallback(true)).build() }
     val audioPlayers = remember { HashMap<Long, ExoPlayer>() }
     val audioLoaded = remember { HashMap<Long, Triple<Uri, Long, Long>>() }
     val loader = remember { ImageLoader.Builder(ctx).components { add(VideoFrameDecoder.Factory()) }.build() }
@@ -186,6 +236,7 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
         it?.let { u -> val id = vm.addSticker(u, absState.value); selKind = 2; selId = id; cat = Cat.TEXT; tool = Tool.STICKER }
     }
     val pickSrt = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::importSrt) }
+    val pickLut = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::setLut) }
     LaunchedEffect(msg) { msg?.let { Toast.makeText(ctx, it, Toast.LENGTH_SHORT).show(); vm.msg.value = null } }
 
     val structure = p.clips.map { Triple(it.uri, it.start, it.end) }
@@ -203,11 +254,26 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
         )
         player.prepare()
     }
-    LaunchedEffect(cur, sel, structure, recording) { cur?.let { applyPreview(player, it, recording) } }
+    // Preview effects are applied only after the sliders stop moving. Re-creating the GL pipeline on every tick froze the player.
+    val fxSig = cur?.let {
+        listOf<Any>(it.fx, it.rot, it.tilt, it.mirror, it.flipV, it.bright, it.contrast, it.sat, it.hue, it.temp, it.expo, it.shadows,
+            it.highlights, it.matte, it.tint, it.zoom, it.panX, it.panY, it.fadeIn, it.fadeOut, it.animIn, it.animOut, it.loop, it.animMs, it.keys, it.lenMs)
+    }
+    LaunchedEffect(fxSig, sel, fxOk) {
+        delay(300)
+        val list = if (fxOk) (cur?.let { clipEffects(it) } ?: emptyList()) else emptyList()
+        runCatching { player.setVideoEffects(list) }
+    }
+    LaunchedEffect(cur?.speed, cur?.pitch, cur?.volume, cur?.isImage, sel, recording) { cur?.let { applyPlayback(player, it, recording) } }
     DisposableEffect(player) {
         val l = object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) { vm.selected.value = player.currentMediaItemIndex }
             override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
+            override fun onPlayerError(error: PlaybackException) {
+                runCatching { File(ctx.filesDir, "crash.txt").writeText("Player error " + error.errorCodeName + "\n" + Log.getStackTraceString(error)) }
+                Toast.makeText(ctx, error.errorCodeName, Toast.LENGTH_LONG).show()
+                if (fxOk) { fxOk = false; runCatching { player.setVideoEffects(emptyList()); player.prepare() } }
+            }
         }
         player.addListener(l)
         onDispose { player.removeListener(l) }
@@ -304,7 +370,8 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
         }
     }
     fun toolEnabled(t: Tool) = when (t) {
-        Tool.AUDIO, Tool.TEXT, Tool.RATIO, Tool.STICKER, Tool.SRT -> true
+        Tool.AUDIO, Tool.TEXT, Tool.RATIO, Tool.STICKER, Tool.SRT, Tool.BG -> true
+        Tool.TRANS -> cur != null && sel < p.clips.size - 1
         Tool.SPEED, Tool.VOLUME, Tool.PITCH, Tool.FREEZE -> cur != null && !cur.isImage
         Tool.SPLIT, Tool.DUP, Tool.DEL -> cur != null || selKind != 0
         else -> cur != null
@@ -321,6 +388,8 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
             Tool.DUP -> if (selKind == 0) vm.duplicate() else vm.duplicateLayer(selKind, selId)
             Tool.DEL -> if (selKind == 0) vm.delete() else { vm.deleteLayer(selKind, selId); selKind = 0 }
             Tool.SRT -> pickSrt.launch(arrayOf("*/*"))
+            Tool.ALL -> vm.applyToAll()
+            Tool.AUTO -> vm.autoEnhance(player.currentPosition)
             else -> tool = if (tool == t) null else t
         }
     }
@@ -356,6 +425,7 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
             PreviewOverlays(p, absState)
             if (p.clips.isNotEmpty()) {
                 Row(Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+                    IconButton({ fxOk = !fxOk }) { Icon(if (fxOk) Icons.Default.AutoFixHigh else Icons.Default.AutoFixOff, null) }
                     IconButton({ vm.snapshot(player.currentPosition) }) { Icon(Icons.Default.PhotoCamera, stringResource(R.string.snapshot)) }
                     IconButton({ full = !full }) { Icon(if (full) Icons.Default.FullscreenExit else Icons.Default.Fullscreen, null) }
                 }
@@ -394,7 +464,9 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
                         PanelCtx(
                             recording, selKind, selId, { absState.value }, { k, id -> onSelect(k, id) }, { selKind = 0 },
                             { pickAudio.launch(arrayOf("audio/*")) }, { pickImage.launch(arrayOf("image/*")) }, { toggleRecord() },
-                            { vm.addKey(player.currentPosition) }, { vm.speak(it, absState.value) }, { vm.addSfx(it, absState.value) }, { vm.extractAudio() }
+                            { vm.addKey(player.currentPosition) }, { vm.speak(it, absState.value) }, { vm.addSfx(it, absState.value) }, { vm.extractAudio() },
+                            { kind, col -> vm.addShape(kind, col, absState.value) },
+                            { pickLut.launch(arrayOf("*/*")) }
                         )
                     )
                 }
@@ -439,6 +511,12 @@ fun EditorScreen(vm: EditorViewModel = viewModel(), startTool: Tool? = null, onB
             title = { Text(stringResource(R.string.export)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("TikTok" to Triple(1080, false, 1), "Reels" to Triple(1080, false, 1), "YouTube" to Triple(1080, false, 2),
+                            "YouTube 4K" to Triple(2160, true, 2), "WhatsApp" to Triple(480, false, 0)).forEach { (name, t) ->
+                            AssistChip(onClick = { h = t.first; hevc = t.second; q = t.third }, label = { Text(name) })
+                        }
+                    }
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(480, 720, 1080, 1440, 2160).forEach { FilterChip(h == it, { h = it }, { Text(if (it == 2160) "4K" else "${it}p") }) }
                     }
@@ -500,6 +578,7 @@ private fun BoxScope.PreviewOverlays(p: Project, abs: State<Long>) {
             model = s.uri, contentDescription = null,
             modifier = Modifier.align(BiasAlignment(s.x, -s.y)).fillMaxWidth(s.scale).graphicsLayer {
                 alpha = if (s.anim == 1) s.alpha * pr else s.alpha
+                rotationZ = -s.rot
                 val k = if (s.anim == 2) pr.coerceAtLeast(0.01f) else 1f
                 scaleX = k; scaleY = k
                 translationY = if (s.anim == 3) (1f - pr) * 60f else 0f
@@ -513,8 +592,9 @@ private fun BoxScope.PreviewOverlays(p: Project, abs: State<Long>) {
             t.text.take(shown), color = Color(t.color), fontSize = (t.size / 3f).sp,
             fontWeight = if (t.bold) FontWeight.Bold else null,
             fontFamily = FONT_FAMILIES[t.font.coerceIn(0, FONT_FAMILIES.size - 1)],
-            modifier = Modifier.align(BiasAlignment(0f, -t.y)).graphicsLayer {
+            modifier = Modifier.align(BiasAlignment(t.x, -t.y)).graphicsLayer {
                 alpha = if (t.anim == 1) pr else 1f
+                rotationZ = -t.rot
                 val k = if (t.anim == 2) pr.coerceAtLeast(0.01f) else 1f
                 scaleX = k; scaleY = k
                 translationY = if (t.anim == 3) (1f - pr) * 60f else 0f
@@ -573,6 +653,10 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
             }
             Tool.FILTER -> c?.let {
                 Chips(Fx.entries.toList(), it.fx, { f -> stringResource(fxLabel(f)) }) { f -> vm.updateClip(false) { x -> x.copy(fx = f) } }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(pc.pickLut) { Text(stringResource(R.string.lut)) }
+                    if (it.lut != null) TextButton({ vm.clearLut() }) { Text(stringResource(R.string.remove)) }
+                }
             }
             Tool.ADJUST -> c?.let {
                 LS(stringResource(R.string.brightness), it.bright, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(bright = v) } }
@@ -580,6 +664,11 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
                 LS(stringResource(R.string.saturation), it.sat, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(sat = v) } }
                 LS(stringResource(R.string.hue), it.hue, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(hue = v) } }
                 LS(stringResource(R.string.temperature), it.temp, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(temp = v) } }
+                LS(stringResource(R.string.expo), it.expo, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(expo = v) } }
+                LS(stringResource(R.string.shadows), it.shadows, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(shadows = v) } }
+                LS(stringResource(R.string.highlights), it.highlights, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(highlights = v) } }
+                LS(stringResource(R.string.matte), it.matte, 0f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(matte = v) } }
+                LS(stringResource(R.string.tint), it.tint, -1f..1f, "", end) { v -> vm.updateClip(true) { x -> x.copy(tint = v) } }
             }
             Tool.ZOOM -> c?.let {
                 LS(stringResource(R.string.zoom), it.zoom, 1f..4f, "%.2fx".format(it.zoom), end) { v -> vm.updateClip(true) { x -> x.copy(zoom = v) } }
@@ -593,6 +682,25 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     it.keys.forEachIndexed { i, k ->
                         FilterChip(false, { vm.removeKey(i) }, { Text("◆ ${fmt(k.tMs)}") }, trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) })
+                    }
+                }
+            }
+            Tool.TRANS -> c?.let { a ->
+                val b = p.clips.getOrNull(p.clips.indexOf(a) + 1)
+                if (b != null) {
+                    Chips(listOf(0, 1, 2, 3, 4, 5, 6, 7), curTrans(a, b), { k -> transLabel(k) }) { k -> vm.setTransition(k, a.animMs.coerceIn(200, 1500)) }
+                    LS("ms", a.animMs.toFloat(), 200f..1500f, "${a.animMs} ms", end) { v -> vm.setTransition(curTrans(a, b), v.toLong(), true) }
+                }
+            }
+            Tool.BG -> {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ShapeGen.BG.forEachIndexed { i, (c1, c2) ->
+                        Box(
+                            Modifier.size(48.dp).clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(listOf(Color(c1), Color(c2))))
+                                .border(BorderStroke(1.dp, Color(0x55FFFFFF)), RoundedCornerShape(12.dp))
+                                .clickable { vm.addColorClip(i) }
+                        )
                     }
                 }
             }
@@ -632,6 +740,7 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
                 p.audio.firstOrNull { pc.selKind == 3 && it.id == pc.selId }?.let { a ->
                     Text(a.label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium)
                     LS(stringResource(R.string.volume), a.volume, 0f..1f, "${(a.volume * 100).toInt()}%", end) { v -> vm.updateAudio(a.id, true) { x -> x.copy(volume = v) } }
+                    TextButton({ vm.fillAudioToEnd(a.id) }) { Text(stringResource(R.string.loop_end)) }
                     TextButton({ vm.removeAudio(a.id); pc.onClear() }) { Icon(Icons.Default.Delete, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.delete)) }
                 }
             }
@@ -654,7 +763,19 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
                     }
                 }
                 p.texts.firstOrNull { pc.selKind == 1 && it.id == pc.selId }?.let { tx ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TEXT_PRESETS.forEach { pr ->
+                            Text(
+                                "Aa", color = Color(pr.color), fontWeight = if (pr.bold) FontWeight.Bold else null, fontFamily = FONT_FAMILIES[pr.font],
+                                modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(if (pr.bg) Color(0x99000000) else Color(0x22FFFFFF))
+                                    .clickable { vm.updateText(tx.id, false) { x -> x.copy(color = pr.color, bold = pr.bold, bg = pr.bg, font = pr.font, size = pr.size) } }
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
                     LS(stringResource(R.string.position), tx.y, -1f..1f, "", end) { v -> vm.updateText(tx.id, true) { x -> x.copy(y = v) } }
+                    LS("X", tx.x, -1f..1f, "", end) { v -> vm.updateText(tx.id, true) { x -> x.copy(x = v) } }
+                    LS(stringResource(R.string.tilt), tx.rot, -180f..180f, "${tx.rot.toInt()}°", end) { v -> vm.updateText(tx.id, true) { x -> x.copy(rot = v) } }
                     LS(stringResource(R.string.size), tx.size.toFloat(), 24f..200f, "${tx.size}", end) { v -> vm.updateText(tx.id, true) { x -> x.copy(size = v.toInt()) } }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         listOf(0xFFFFFFFF, 0xFF000000, 0xFFFFEB3B, 0xFFFF5252, 0xFF00E5C3, 0xFF7C4DFF).forEach { col ->
@@ -677,6 +798,25 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
             }
             Tool.STICKER -> {
                 Button(pc.pickImage) { Icon(Icons.Default.Image, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.sticker)) }
+                var shapeColor by remember { mutableIntStateOf(0xFFFFFFFF.toInt()) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ShapeGen.GLYPHS.forEachIndexed { i, g ->
+                        Text(
+                            g, fontSize = 26.sp, color = Color(shapeColor),
+                            modifier = Modifier.clip(CircleShape).background(Color(0x22FFFFFF))
+                                .clickable { val id = pc.onShape(i, shapeColor); if (id >= 0) pc.onSelect(2, id) }.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf(0xFFFFFFFF, 0xFF000000, 0xFFFFEB3B, 0xFFFF5252, 0xFF00E5C3, 0xFF7C4DFF).forEach { col ->
+                        Box(
+                            Modifier.size(26.dp).clip(CircleShape).background(Color(col))
+                                .border(BorderStroke(if (shapeColor == col.toInt()) 3.dp else 1.dp, ACCENT), CircleShape)
+                                .clickable { shapeColor = col.toInt() }
+                        )
+                    }
+                }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     p.stickers.forEach { s ->
                         FilterChip(pc.selKind == 2 && pc.selId == s.id, { pc.onSelect(2, s.id) }, { AsyncImage(model = s.uri, contentDescription = null, modifier = Modifier.size(28.dp)) },
@@ -687,12 +827,13 @@ private fun Panel(t: Tool, p: Project, c: Clip?, vm: EditorViewModel, pc: PanelC
                     Chips(listOf(0, 1, 2, 3), s.anim, { i -> textAnimLabel(i) }) { i -> vm.updateSticker(s.id, false) { x -> x.copy(anim = i) } }
                     LS(stringResource(R.string.size), s.scale, 0.1f..1f, "", end) { v -> vm.updateSticker(s.id, true) { x -> x.copy(scale = v) } }
                     LS(stringResource(R.string.opacity), s.alpha, 0.1f..1f, "${(s.alpha * 100).toInt()}%", end) { v -> vm.updateSticker(s.id, true) { x -> x.copy(alpha = v) } }
+                    LS(stringResource(R.string.tilt), s.rot, -180f..180f, "${s.rot.toInt()}°", end) { v -> vm.updateSticker(s.id, true) { x -> x.copy(rot = v) } }
                     LS("X", s.x, -1f..1f, "", end) { v -> vm.updateSticker(s.id, true) { x -> x.copy(x = v) } }
                     LS("Y", s.y, -1f..1f, "", end) { v -> vm.updateSticker(s.id, true) { x -> x.copy(y = v) } }
                 }
             }
             Tool.RATIO -> {
-                val opts = listOf(0f to "", 9f / 16 to "9:16 · TikTok", 16f / 9 to "16:9 · YouTube", 1f to "1:1", 4f / 5 to "4:5 · Instagram", 4f / 3 to "4:3")
+                val opts = listOf(0f to "", 9f / 16 to "9:16 · TikTok", 16f / 9 to "16:9 · YouTube", 1f to "1:1", 4f / 5 to "4:5 · Instagram", 4f / 3 to "4:3", 3f / 4 to "3:4", 21f / 9 to "21:9")
                 Chips(opts.map { it.first }, p.ratio, { r -> if (r == 0f) stringResource(R.string.original) else opts.first { it.first == r }.second }) { r -> vm.setRatio(r) }
                 Chips(listOf(false, true), p.fit, { f -> stringResource(if (f) R.string.fill else R.string.fit) }) { f -> vm.setFit(f) }
             }

@@ -56,6 +56,8 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     val msg = MutableStateFlow<Int?>(null)
     val drafts = MutableStateFlow<List<Draft>>(emptyList())
     val recording = MutableStateFlow(false)
+    val waves = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
+    private val pendingWaves = HashSet<String>()
     private var dragging = false
     private var transformer: Transformer? = null
     private var recorder: MediaRecorder? = null
@@ -119,14 +121,20 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
                     if (ctx.contentResolver.getType(u)?.startsWith("image/") == true) {
                         val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                         runCatching { ctx.contentResolver.openInputStream(u)?.use { BitmapFactory.decodeStream(it, null, o) } }
-                        return@mapNotNull if (o.outWidth > 0) Clip(id = System.nanoTime(), uri = u, durMs = 20000, end = 3000, isImage = true) else null
+                        return@mapNotNull if (o.outWidth > 0) Clip(id = System.nanoTime(), uri = u, durMs = 20000, end = 3000, isImage = true, w = o.outWidth, h = o.outHeight) else null
                     }
                     val r = MediaMetadataRetriever()
                     try {
                         r.setDataSource(ctx, u)
                         val d = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
                         val hasVideo = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null
-                        if (d == null || !hasVideo) null else Clip(id = System.nanoTime(), uri = u, durMs = d)
+                        if (d == null || !hasVideo) null else {
+                            var vw = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                            var vh = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                            val rot = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+                            if (rot % 180 != 0) { val t = vw; vw = vh; vh = t }
+                            Clip(id = System.nanoTime(), uri = u, durMs = d, w = vw, h = vh)
+                        }
                     } catch (e: Exception) { null } finally { r.release() }
                 }
             }
@@ -245,6 +253,126 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    fun duplicateDraft(id: Long) {
+        ProjectStore.copy(ctx, id, System.currentTimeMillis())
+        refreshDrafts()
+    }
+
+    fun ensureWave(u: Uri) {
+        val k = u.toString()
+        if (waves.value.containsKey(k) || !pendingWaves.add(k)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val pk = Waveform.peaks(ctx, u)
+            waves.value = waves.value + (k to (pk ?: FloatArray(0)))
+        }
+    }
+
+    /** Repeat the selected audio track back to back until the end of the project. */
+    fun fillAudioToEnd(id: Long) {
+        val p = _p.value
+        val a = p.audio.firstOrNull { it.id == id } ?: return
+        if (a.lenMs < 300) return
+        val extra = mutableListOf<AudioTrack>()
+        var at = a.startMs + a.lenMs
+        var n = 0
+        while (at < p.totalMs - 200 && n < 50) { extra += a.copy(id = System.nanoTime() + n, startMs = at); at += a.lenMs; n++ }
+        if (extra.isNotEmpty()) edit { pr -> pr.copy(audio = pr.audio + extra) }
+    }
+
+    /** Sequential transition between the selected clip and the next one: the first leaves, then the second enters. */
+    fun setTransition(type: Int, ms: Long, drag: Boolean = false) {
+        val i = selected.value
+        val g: (Project) -> Project = g@{ p ->
+            val a = p.clips.getOrNull(i) ?: return@g p
+            val b = p.clips.getOrNull(i + 1) ?: return@g p
+            val (outA, inA) = when (type) {
+                2 -> Anim.SLIDE_LEFT to Anim.SLIDE_RIGHT
+                3 -> Anim.SLIDE_RIGHT to Anim.SLIDE_LEFT
+                4 -> Anim.SLIDE_DOWN to Anim.SLIDE_UP
+                5 -> Anim.SLIDE_UP to Anim.SLIDE_DOWN
+                6 -> Anim.ZOOM to Anim.ZOOM
+                7 -> Anim.POP to Anim.POP
+                else -> Anim.NONE to Anim.NONE
+            }
+            val fade = if (type == 1) ms else 0L
+            val l = p.clips.toMutableList()
+            l[i] = a.copy(animOut = outA, fadeOut = fade, animMs = ms)
+            l[i + 1] = b.copy(animIn = inA, fadeIn = fade, animMs = ms)
+            p.copy(clips = l)
+        }
+        if (drag) live(g) else edit(g)
+    }
+
+    fun addColorClip(kind: Int) {
+        val p = _p.value
+        val ref = p.clips.getOrNull(selected.value) ?: p.clips.firstOrNull()
+        val aspect = if (ref != null && ref.w > 0 && ref.h > 0) ref.w / ref.h.toFloat() else 16f / 9f
+        val (uri, w, h) = ShapeGen.solid(ctx, kind, aspect)
+        val clip = Clip(id = System.nanoTime(), uri = uri, durMs = 20000, end = 3000, isImage = true, w = w, h = h)
+        val at = (selected.value + 1).coerceIn(0, p.clips.size)
+        edit { pr -> pr.copy(clips = pr.clips.toMutableList().also { it.add(at.coerceAtMost(it.size), clip) }) }
+        selected.value = at.coerceAtMost(maxOf(0, _p.value.clips.size - 1))
+    }
+
+    /** Measures the brightness and contrast of the current frame and adjusts the clip accordingly. */
+    fun autoEnhance(localMs: Long) {
+        val c = _p.value.clips.getOrNull(selected.value) ?: return
+        viewModelScope.launch {
+            val st = withContext(Dispatchers.IO) {
+                runCatching {
+                    val bmp = if (c.isImage) loadBitmap(ctx, c.uri) else frameAt(c.uri, (c.start + localMs) * 1000)!!
+                    val s = Bitmap.createScaledBitmap(bmp, 64, 64, true)
+                    val px = IntArray(64 * 64)
+                    s.getPixels(px, 0, 64, 0, 0, 64, 64)
+                    var sum = 0.0
+                    var sq = 0.0
+                    for (v in px) {
+                        val l = (0.299 * ((v shr 16) and 255) + 0.587 * ((v shr 8) and 255) + 0.114 * (v and 255)) / 255.0
+                        sum += l; sq += l * l
+                    }
+                    val mean = sum / px.size
+                    mean to kotlin.math.sqrt(maxOf(0.0, sq / px.size - mean * mean))
+                }.getOrNull()
+            }
+            if (st == null) { msg.value = R.string.failed; return@launch }
+            val (mean, std) = st
+            updateClip(false) { x ->
+                x.copy(
+                    bright = ((0.46 - mean) * 0.8).toFloat().coerceIn(-0.25f, 0.25f),
+                    contrast = ((0.23 - std) * 1.5).toFloat().coerceIn(-0.1f, 0.3f),
+                    sat = 0.12f
+                )
+            }
+        }
+    }
+
+    fun setLut(u: Uri) {
+        viewModelScope.launch {
+            val f = withContext(Dispatchers.IO) {
+                runCatching {
+                    val text = ctx.contentResolver.openInputStream(u)!!.bufferedReader().readText()
+                    parseCube(text)
+                    File(ctx.filesDir, "lut_${System.nanoTime()}.cube").also { it.writeText(text) }
+                }.getOrNull()
+            }
+            if (f == null) { msg.value = R.string.failed; return@launch }
+            updateClip(false) { it.copy(lut = f.absolutePath) }
+        }
+    }
+    fun clearLut() = updateClip(false) { it.copy(lut = null) }
+
+    fun applyToAll() {
+        val c = _p.value.clips.getOrNull(selected.value) ?: return
+        edit { p ->
+            p.copy(clips = p.clips.map {
+                it.copy(fx = c.fx, bright = c.bright, contrast = c.contrast, sat = c.sat, hue = c.hue, temp = c.temp,
+                    expo = c.expo, shadows = c.shadows, highlights = c.highlights, matte = c.matte, tint = c.tint)
+            })
+        }
+    }
+
+    fun addShape(kind: Int, color: Int, atMs: Long): Long = addSticker(ShapeGen.make(ctx, kind, color), atMs)
 
     /** Split the selected text (1), sticker (2) or audio track (3) at [atMs] on the timeline. */
     fun splitLayer(kind: Int, id: Long, atMs: Long) {

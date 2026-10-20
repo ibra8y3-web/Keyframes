@@ -6,11 +6,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-enum class Fx { NONE, GRAY, SEPIA, INVERT, WARM, COOL, CINE, VIVID, FADE, NOIR, MIDNIGHT, VINTAGE, GOLDEN }
+enum class Fx { NONE, GRAY, SEPIA, INVERT, WARM, COOL, CINE, VIVID, FADE, NOIR, MIDNIGHT, VINTAGE, GOLDEN, SUNSET, FOREST, ROSE, OCEAN, CYBER, MATTE, BLEACH, DRAMA, PASTEL, RETRO, SUNRISE, MOODY }
 
 enum class Anim { NONE, SLIDE_LEFT, SLIDE_RIGHT, SLIDE_UP, SLIDE_DOWN, ZOOM, POP }
 
-enum class Loop { NONE, KEN_IN, KEN_OUT, PULSE, SHAKE }
+enum class Loop { NONE, KEN_IN, KEN_OUT, PULSE, SHAKE, BOUNCE, DRIFT, FLASH, STROBE }
 
 data class Keyframe(val tMs: Long, val zoom: Float, val panX: Float, val panY: Float)
 
@@ -26,7 +26,9 @@ data class Clip(
     val isImage: Boolean = false,
     val pitch: Float = 1f, val tilt: Float = 0f, val flipV: Boolean = false,
     val animIn: Anim = Anim.NONE, val animOut: Anim = Anim.NONE, val loop: Loop = Loop.NONE, val animMs: Long = 500,
-    val keys: List<Keyframe> = emptyList()
+    val keys: List<Keyframe> = emptyList(),
+    val expo: Float = 0f, val shadows: Float = 0f, val highlights: Float = 0f, val matte: Float = 0f, val tint: Float = 0f,
+    val w: Int = 0, val h: Int = 0, val lut: String? = null
 ) {
     val lenMs get() = end - start
     val outMs get() = (lenMs / speed).toLong()
@@ -35,12 +37,13 @@ data class Clip(
 data class TextItem(
     val id: Long, val text: String, val start: Long, val end: Long,
     val y: Float = -0.7f, val size: Int = 64, val color: Int = -1,
-    val bold: Boolean = false, val bg: Boolean = false, val font: Int = 0, val anim: Int = 0
+    val bold: Boolean = false, val bg: Boolean = false, val font: Int = 0, val anim: Int = 0,
+    val x: Float = 0f, val rot: Float = 0f
 )
 
 data class Sticker(
     val id: Long, val uri: Uri, val start: Long, val end: Long,
-    val x: Float = 0f, val y: Float = 0f, val scale: Float = 0.3f, val alpha: Float = 1f, val anim: Int = 0
+    val x: Float = 0f, val y: Float = 0f, val scale: Float = 0.3f, val alpha: Float = 1f, val anim: Int = 0, val rot: Float = 0f
 )
 
 /** kind: 0 music, 1 voice recording, 2 sound effect, 3 text to speech, 4 audio extracted from a clip. */
@@ -99,6 +102,8 @@ object ProjectStore {
     fun ids(c: Context): List<Long> =
         dir(c).listFiles()?.mapNotNull { it.nameWithoutExtension.toLongOrNull() }?.sortedDescending() ?: emptyList()
 
+    fun copy(c: Context, id: Long, newId: Long) { runCatching { file(c, id).copyTo(file(c, newId), overwrite = true) } }
+
     fun delete(c: Context, id: Long) { runCatching { file(c, id).delete() } }
 
     fun save(c: Context, id: Long, p: Project) {
@@ -117,6 +122,9 @@ object ProjectStore {
                         put("fi", k.fadeIn); put("fo", k.fadeOut); put("img", k.isImage)
                         put("pt", k.pitch.toDouble()); put("tl", k.tilt.toDouble()); put("fv", k.flipV)
                         put("ai", k.animIn.name); put("ao", k.animOut.name); put("lp", k.loop.name); put("am", k.animMs)
+                        put("ex", k.expo.toDouble()); put("sh", k.shadows.toDouble()); put("hl", k.highlights.toDouble())
+                        put("mt", k.matte.toDouble()); put("tn", k.tint.toDouble())
+                        put("w", k.w); put("h", k.h); put("lut", k.lut ?: "")
                         put("keys", JSONArray().apply {
                             k.keys.forEach { kf ->
                                 put(JSONObject().put("t", kf.tMs).put("z", kf.zoom.toDouble()).put("x", kf.panX.toDouble()).put("y", kf.panY.toDouble()))
@@ -130,7 +138,7 @@ object ProjectStore {
                     put(JSONObject().apply {
                         put("id", t.id); put("t", t.text); put("s", t.start); put("e", t.end)
                         put("y", t.y.toDouble()); put("z", t.size); put("c", t.color)
-                        put("b", t.bold); put("bg", t.bg); put("f", t.font); put("an", t.anim)
+                        put("b", t.bold); put("bg", t.bg); put("f", t.font); put("an", t.anim); put("px", t.x.toDouble()); put("rt", t.rot.toDouble())
                     })
                 }
             })
@@ -138,7 +146,7 @@ object ProjectStore {
                 p.stickers.forEach { s ->
                     put(JSONObject().apply {
                         put("id", s.id); put("uri", s.uri.toString()); put("s", s.start); put("e", s.end)
-                        put("x", s.x.toDouble()); put("y", s.y.toDouble()); put("sc", s.scale.toDouble()); put("al", s.alpha.toDouble()); put("an", s.anim)
+                        put("x", s.x.toDouble()); put("y", s.y.toDouble()); put("sc", s.scale.toDouble()); put("al", s.alpha.toDouble()); put("an", s.anim); put("rt", s.rot.toDouble())
                     })
                 }
             })
@@ -175,7 +183,10 @@ object ProjectStore {
                 runCatching { Anim.valueOf(j.optString("ai", "NONE")) }.getOrDefault(Anim.NONE),
                 runCatching { Anim.valueOf(j.optString("ao", "NONE")) }.getOrDefault(Anim.NONE),
                 runCatching { Loop.valueOf(j.optString("lp", "NONE")) }.getOrDefault(Loop.NONE),
-                j.optLong("am", 500), keys
+                j.optLong("am", 500), keys,
+                j.optDouble("ex", 0.0).toFloat(), j.optDouble("sh", 0.0).toFloat(), j.optDouble("hl", 0.0).toFloat(),
+                j.optDouble("mt", 0.0).toFloat(), j.optDouble("tn", 0.0).toFloat(),
+                j.optInt("w", 0), j.optInt("h", 0), j.optString("lut", "").takeIf { it.isNotEmpty() }
             )
         }
         val tl = o.optJSONArray("texts")
@@ -183,13 +194,14 @@ object ProjectStore {
             val j = tl.getJSONObject(it)
             TextItem(j.getLong("id"), j.getString("t"), j.getLong("s"), j.getLong("e"),
                 j.getDouble("y").toFloat(), j.getInt("z"), j.getInt("c"),
-                j.optBoolean("b", false), j.optBoolean("bg", false), j.optInt("f", 0), j.optInt("an", 0))
+                j.optBoolean("b", false), j.optBoolean("bg", false), j.optInt("f", 0), j.optInt("an", 0),
+                j.optDouble("px", 0.0).toFloat(), j.optDouble("rt", 0.0).toFloat())
         }
         val sl = o.optJSONArray("stickers")
         val stickers = if (sl == null) emptyList() else (0 until sl.length()).map {
             val j = sl.getJSONObject(it)
             Sticker(j.getLong("id"), Uri.parse(j.getString("uri")), j.getLong("s"), j.getLong("e"),
-                j.getDouble("x").toFloat(), j.getDouble("y").toFloat(), j.getDouble("sc").toFloat(), j.optDouble("al", 1.0).toFloat(), j.optInt("an", 0))
+                j.getDouble("x").toFloat(), j.getDouble("y").toFloat(), j.getDouble("sc").toFloat(), j.optDouble("al", 1.0).toFloat(), j.optInt("an", 0), j.optDouble("rt", 0.0).toFloat())
         }
         val al = o.optJSONArray("audio")
         val audio = if (al == null) emptyList() else (0 until al.length()).map {

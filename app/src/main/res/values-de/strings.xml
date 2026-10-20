@@ -91,4 +91,20 @@
     <string name="srt">Untertitel importieren (SRT)</string>
     <string name="drafts">Entwürfe</string>
     <string name="speak">Text-zu-Sprache</string>
+    <string name="expo">Belichtung</string>
+    <string name="shadows">Schatten</string>
+    <string name="highlights">Lichter</string>
+    <string name="matte">Matt</string>
+    <string name="tint">Tönung</string>
+    <string name="apply_all">Auf alle anwenden</string>
+    <string name="crash">Letzter Absturzbericht</string>
+    <string name="transition">Übergang</string>
+    <string name="color_clip">Farbclip</string>
+    <string name="auto_enhance">Auto-Optimierung</string>
+    <string name="lut">LUT importieren</string>
+    <string name="loop_end">Bis zum Ende füllen</string>
+    <string name="m_bounce">Hüpfen</string>
+    <string name="m_drift">Driften</string>
+    <string name="m_flash">Blitz</string>
+    <string name="m_strobe">Stroboskop</string>
 </resources>

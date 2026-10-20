@@ -1,5 +1,9 @@
 package com.keyframes.editor
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -108,7 +112,7 @@ private fun ClipItem(c: Clip, selected: Boolean, pxPerSec: Float, loader: ImageL
     val density = LocalDensity.current
     val msPerPx = 1000f / with(density) { pxPerSec.dp.toPx() }
     val w = (c.outMs / 1000f * pxPerSec).dp.coerceAtLeast(20.dp)
-    val n = minOf(12, maxOf(1, ceil(w.value / 56f).toInt()))
+    val n = minOf(8, maxOf(1, ceil(w.value / 56f).toInt()))
     val tap by rememberUpdatedState(onTap)
     Box(
         Modifier.width(w).fillMaxHeight().padding(horizontal = 1.dp).clip(RoundedCornerShape(8.dp))
@@ -117,8 +121,13 @@ private fun ClipItem(c: Clip, selected: Boolean, pxPerSec: Float, loader: ImageL
     ) {
         Row(Modifier.fillMaxSize()) {
             for (k in 0 until n) {
+                val tm = ((c.start + c.lenMs * k / n) / 500) * 500
+                val req = remember(c.uri, tm) {
+                    ImageRequest.Builder(ctx).data(c.uri).videoFrameMillis(tm).size(200, 200)
+                        .bitmapConfig(Bitmap.Config.RGB_565).memoryCacheKey("${c.uri}@$tm").build()
+                }
                 AsyncImage(
-                    model = ImageRequest.Builder(ctx).data(c.uri).videoFrameMillis(c.start + c.lenMs * k / n).build(),
+                    model = req,
                     imageLoader = loader, contentDescription = null, contentScale = ContentScale.Crop,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
@@ -164,6 +173,7 @@ fun Timeline(
     var programmatic by remember { mutableStateOf(false) }
     val seek by rememberUpdatedState(onSeek)
     val scrub by rememberUpdatedState(onScrub)
+    val waves by vm.waves.collectAsStateWithLifecycle()
     val tRows = remember(p.texts) { assignRows(p.texts.map { it.start to it.end }) }
     val sRows = remember(p.stickers) { assignRows(p.stickers.map { it.start to it.end }) }
     val nT = (tRows.maxOrNull() ?: -1) + 1
@@ -230,6 +240,21 @@ fun Timeline(
                                 onTrimEnd = { d -> vm.updateAudio(a.id, true) { x -> x.copy(srcEnd = (x.srcEnd + d).coerceIn(x.srcStart + 300, x.durMs)) } },
                                 onDone = { vm.liveEnd() }
                             ) {
+                                LaunchedEffect(a.uri) { vm.ensureWave(a.uri) }
+                                val pk = waves[a.uri.toString()]
+                                if (pk != null && pk.isNotEmpty()) {
+                                    Canvas(Modifier.fillMaxSize()) {
+                                        val mid = size.height / 2f
+                                        var x = 0f
+                                        while (x < size.width) {
+                                            val t = a.srcStart + (x / size.width * a.lenMs).toLong()
+                                            val amp = pk[((t / Waveform.STEP_MS).toInt()).coerceIn(0, pk.size - 1)]
+                                            val hh = amp * size.height * 0.42f
+                                            drawLine(Color.White.copy(alpha = 0.75f), Offset(x, mid - hh), Offset(x, mid + hh), 2f)
+                                            x += 4f
+                                        }
+                                    }
+                                }
                                 Row(Modifier.align(Alignment.CenterStart).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(audioIcon(a.kind), null, Modifier.size(14.dp), tint = Color.White)
                                     Spacer(Modifier.width(4.dp))

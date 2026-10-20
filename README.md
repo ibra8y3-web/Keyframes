@@ -29,8 +29,19 @@ A native Android video editor. Every tool runs on the real Media3 engine (ExoPla
 | Drafts | Every project is saved as a draft; reopen or delete them from the home screen |
 | Speed | 0.25x to 4x with pitch-preserved audio |
 | Volume | Per-clip volume plus a separate music track with its own volume |
-| Filters | Mono, Sepia, Invert, Warm, Cool, plus Cinema, Vivid, Faded, Noir, Midnight, Vintage and Golden (real 3D LUT color grades) |
-| Adjust | Brightness, contrast, saturation, hue, color temperature |
+| Filters | Mono, Sepia, Invert, Warm, Cool, plus Cinema, Vivid, Faded, Noir, Midnight, Vintage, Golden, Sunset, Forest, Rose, Ocean, Cyber, Matte, Bleach, Drama, Pastel, Retro, Sunrise and Moody (real 3D LUT color grades) |
+| Adjust | Brightness, contrast, saturation, hue, color temperature, exposure, shadows, highlights, matte and tint |
+| Transitions | Push left/right/up/down, zoom, pop and dip-to-black between two clips, with adjustable length |
+| Auto enhance | Measures the brightness and contrast of the current frame and sets the adjustments for you (a calculation, not AI) |
+| Import LUT | Load any Adobe .cube 3D LUT as a filter |
+| Color clips | Solid and gradient clips for intros, outros and title cards, sized to match your video |
+| Motion loops | Zoom in/out, pulse, shake, bounce, drift, flash and strobe |
+| Waveforms | Real audio waveforms drawn on every audio track |
+| Fill to end | Repeat a music track until the end of the project |
+| Text styles | Six one-tap style presets plus horizontal position and rotation for text and stickers |
+| Export presets | One-tap TikTok, Reels, YouTube, YouTube 4K and WhatsApp settings |
+| Apply to all | Copy the selected clip's filter and colour settings to every clip |
+| Shapes | Star, heart, arrow, circle, square, diamond and plus, drawn on the device in any colour and used as stickers |
 | Zoom and pan | Crop into any part of the frame, up to 4x |
 | Fade | Fade in and fade out to black per clip |
 | Motion | Slide, zoom or pop in and out of each clip, plus looping Zoom in / Zoom out, Pulse and Shake |
@@ -105,6 +116,8 @@ The APK is written to `app/build/outputs/apk/debug/`.
 - Text to speech needs a speech engine installed on the phone. Sound placed before the first clip or after the end of the project is trimmed on export.
 
 - Motion and fade timing in the live preview can differ slightly from the exported video. The exported file is the reference.
+
+- If the preview ever shows a black screen, tap the magic-wand button on the preview to turn preview effects off. The export is not affected. After a crash, the home screen shows a report you can share.
 
 ## Notes
 
